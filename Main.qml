@@ -3,7 +3,7 @@ import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import Qt.labs.lottieqt 1.0
 import com.finix.audioplayer 1.0
-import Qt.labs.platform 1.0
+import Qt.labs.platform 1.1
 
 ApplicationWindow {
     id: root
@@ -14,7 +14,7 @@ ApplicationWindow {
     visible: true
     title: qsTr("Finix Audio Player - Complete OOP Edition")
 
-    // Color scheme
+    // ==================== Color Scheme ====================
     readonly property color primaryColor: "#1DB954"
     readonly property color backgroundColor: "#121212"
     readonly property color surfaceColor: "#282828"
@@ -24,12 +24,25 @@ ApplicationWindow {
     readonly property color accentColor: "#BD2E2E"
     readonly property color hoverColor: "#404040"
 
-    // Audio controller
+    // ==================== Controllers & Models ====================
     AudioController {
         id: audioController
     }
 
-    // Background with blur effect
+    LibraryModel {
+        id: libraryModel
+
+        onScanProgressChanged: function(current, total) {
+            scanProgressDialog.currentValue = current
+            scanProgressDialog.totalValue = total
+        }
+
+        onErrorOccurred: function(message) {
+            errorNotification.show(message)
+        }
+    }
+
+    // ==================== Background ====================
     background: Rectangle {
         color: root.backgroundColor
 
@@ -41,7 +54,6 @@ ApplicationWindow {
             opacity: 0.15
         }
 
-        // Gradient overlay
         Rectangle {
             anchors.fill: parent
             gradient: Gradient {
@@ -51,7 +63,7 @@ ApplicationWindow {
         }
     }
 
-    // Format time helper function
+    // ==================== Helper Functions ====================
     function formatTime(milliseconds) {
         if (milliseconds <= 0 || isNaN(milliseconds))
             return "0:00"
@@ -61,7 +73,7 @@ ApplicationWindow {
         return minutes + ":" + (seconds < 10 ? "0" : "") + seconds
     }
 
-    // File dialog for opening local files
+    // ==================== File Dialog ====================
     FileDialog {
         id: fileDialog
         title: qsTr("Select Audio File")
@@ -85,7 +97,25 @@ ApplicationWindow {
         }
     }
 
-    // Main layout
+    // ==================== Folder Dialog ====================
+    FolderDialog {
+        id: folderDialog
+        title: qsTr("Select Music Folder")
+        onAccepted: {
+            if (folderDialog.folder) {
+                var folderPath = folderDialog.folder.toString()
+                if (folderPath.startsWith("file:///"))
+                    folderPath = folderPath.substring(8)
+                else if (folderPath.startsWith("file://"))
+                    folderPath = folderPath.substring(7)
+                console.log("Scanning folder:", folderPath)
+                scanProgressDialog.open()
+                libraryModel.scanDirectory(folderPath)
+            }
+        }
+    }
+
+    // ==================== Main Layout ====================
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
@@ -102,7 +132,6 @@ ApplicationWindow {
                 anchors.margins: 15
                 spacing: 15
 
-                // App icon and title
                 Image {
                     source: "qrc:/assests/app_icon_full.png"
                     sourceSize.width: 40
@@ -120,7 +149,6 @@ ApplicationWindow {
 
                 Item { Layout.fillWidth: true }
 
-                // View toggle buttons
                 Row {
                     spacing: 10
                     Layout.alignment: Qt.AlignVCenter
@@ -128,6 +156,7 @@ ApplicationWindow {
                     Button {
                         id: playerViewBtn
                         text: "🎵 Player"
+                        checkable: true
                         checked: true
                         width: 100
                         height: 36
@@ -158,6 +187,7 @@ ApplicationWindow {
                     Button {
                         id: libraryViewBtn
                         text: "📚 Library"
+                        checkable: true
                         checked: false
                         width: 100
                         height: 36
@@ -188,6 +218,7 @@ ApplicationWindow {
                     Button {
                         id: effectsViewBtn
                         text: "🎛️ Effects"
+                        checkable: true
                         checked: false
                         width: 100
                         height: 36
@@ -217,7 +248,6 @@ ApplicationWindow {
                 }
             }
 
-            // Bottom border
             Rectangle {
                 anchors.bottom: parent.bottom
                 width: parent.width
@@ -349,7 +379,7 @@ ApplicationWindow {
                         }
                     }
 
-                    // Main visualizer and info area
+                    // Main visualizer area
                     Rectangle {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
@@ -362,25 +392,22 @@ ApplicationWindow {
                             ColorAnimation { duration: 300 }
                         }
 
-                        // Content when audio is loaded
                         ColumnLayout {
                             anchors.fill: parent
                             anchors.margins: 30
                             spacing: 20
                             visible: audioController.duration > 0
 
-                            // Album art and track info
                             RowLayout {
                                 Layout.fillWidth: true
                                 spacing: 30
 
-                                // Album art
                                 Rectangle {
                                     Layout.preferredWidth: 200
                                     Layout.preferredHeight: 200
                                     color: "#1E1E1E"
                                     radius: 10
-                                    clip: true  // Add this line
+                                    clip: true
 
                                     Image {
                                         anchors.fill: parent
@@ -392,7 +419,6 @@ ApplicationWindow {
                                     }
                                 }
 
-                                // Track info
                                 ColumnLayout {
                                     Layout.fillWidth: true
                                     spacing: 10
@@ -451,6 +477,7 @@ ApplicationWindow {
                                         Layout.fillHeight: true
 
                                         LottieAnimation {
+                                            id: visualizer
                                             anchors.fill: parent
                                             source: "qrc:/assests/animation.json"
                                             loops: LottieAnimation.Infinite
@@ -458,10 +485,9 @@ ApplicationWindow {
                                             quality: LottieAnimation.HighQuality
                                             antialiasing: true
 
-                                            id: visualizer
                                             Component.onCompleted: {
                                                 if (audioController.isPlaying) {
-                                                    visualizer.play()
+                                                    play()
                                                 }
                                             }
 
@@ -481,7 +507,7 @@ ApplicationWindow {
                             }
                         }
 
-                        // Placeholder when no audio
+                        // Placeholder
                         ColumnLayout {
                             anchors.centerIn: parent
                             visible: audioController.duration <= 0
@@ -522,7 +548,6 @@ ApplicationWindow {
                     anchors.fill: parent
                     spacing: 0
 
-                    // Library header
                     Rectangle {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 80
@@ -548,7 +573,6 @@ ApplicationWindow {
                         }
                     }
 
-                    // Library controls
                     Rectangle {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 70
@@ -569,6 +593,34 @@ ApplicationWindow {
                                     color: root.backgroundColor
                                     border.color: librarySearchField.activeFocus ? root.primaryColor : root.surfaceLightColor
                                     border.width: 1
+                                }
+
+                                onTextChanged: {
+                                    libraryModel.search(text)
+                                }
+                            }
+
+                            ComboBox {
+                                id: sortCombo
+                                Layout.preferredWidth: 150
+                                model: ["Title", "Artist", "Album", "Duration", "Year"]
+
+                                background: Rectangle {
+                                    radius: 8
+                                    color: root.surfaceLightColor
+                                    border.color: root.primaryColor
+                                    border.width: 1
+                                }
+
+                                contentItem: Text {
+                                    text: sortCombo.displayText
+                                    color: root.textColor
+                                    leftPadding: 10
+                                    verticalAlignment: Text.AlignVCenter
+                                }
+
+                                onCurrentTextChanged: {
+                                    libraryModel.sortBy(currentText)
                                 }
                             }
 
@@ -592,23 +644,122 @@ ApplicationWindow {
                                 }
 
                                 onClicked: {
-                                    // Open folder dialog
-                                    console.log("Scan folder clicked")
+                                    folderDialog.open()
                                 }
                             }
                         }
                     }
 
-                    // Library content
+                    // Statistics bar
                     Rectangle {
                         Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        color: root.backgroundColor
+                        Layout.preferredHeight: 40
+                        color: "#242424"
 
+                        RowLayout {
+                            anchors.fill: parent
+                            anchors.margins: 10
+                            spacing: 20
+
+                            Label {
+                                text: libraryModel.totalTracks + " tracks"
+                                color: root.textSecondaryColor
+                            }
+
+                            Label {
+                                text: libraryModel.totalArtists + " artists"
+                                color: root.textSecondaryColor
+                            }
+
+                            Label {
+                                text: libraryModel.totalAlbums + " albums"
+                                color: root.textSecondaryColor
+                            }
+
+                            Item { Layout.fillWidth: true }
+                        }
+                    }
+
+                    // Track list
+                    ListView {
+                        id: trackListView
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        clip: true
+
+                        model: libraryModel
+
+                        delegate: ItemDelegate {
+                            width: trackListView.width
+                            height: 60
+
+                            background: Rectangle {
+                                color: parent.hovered ? "#2A2A2A" : "transparent"
+                            }
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.margins: 10
+                                spacing: 15
+
+                                Rectangle {
+                                    Layout.preferredWidth: 50
+                                    Layout.preferredHeight: 50
+                                    color: "#1E1E1E"
+                                    radius: 4
+
+                                    Label {
+                                        anchors.centerIn: parent
+                                        text: "♪"
+                                        font.pixelSize: 24
+                                        color: root.textSecondaryColor
+                                    }
+                                }
+
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 4
+
+                                    Label {
+                                        Layout.fillWidth: true
+                                        text: model.title || "Unknown"
+                                        color: root.textColor
+                                        font.pixelSize: 14
+                                        font.bold: true
+                                        elide: Text.ElideRight
+                                    }
+
+                                    Label {
+                                        Layout.fillWidth: true
+                                        text: (model.artist || "Unknown") + " • " + (model.album || "Unknown")
+                                        color: root.textSecondaryColor
+                                        font.pixelSize: 12
+                                        elide: Text.ElideRight
+                                    }
+                                }
+
+                                Label {
+                                    text: formatTime(model.duration)
+                                    color: root.textSecondaryColor
+                                    font.pixelSize: 12
+                                }
+                            }
+
+                            onDoubleClicked: {
+                                audioController.openFile(model.path)
+                            }
+                        }
+
+                        ScrollBar.vertical: ScrollBar {
+                            policy: ScrollBar.AsNeeded
+                        }
+
+                        // Empty state
                         Label {
                             anchors.centerIn: parent
-                            text: qsTr("Library feature coming soon!\nScan folders to add music.")
-                            font.pixelSize: 18
+                            visible: trackListView.count === 0
+                            text: qsTr("No tracks in library\nClick 'Scan Folder' to add music")
+                            font.pixelSize: 16
                             color: root.textSecondaryColor
                             horizontalAlignment: Text.AlignHCenter
                         }
@@ -623,11 +774,11 @@ ApplicationWindow {
                 ScrollView {
                     anchors.fill: parent
                     clip: true
+                    contentWidth: availableWidth
 
                     ColumnLayout {
                         width: parent.width
                         spacing: 20
-                        anchors.margins: 30
 
                         Label {
                             text: qsTr("Audio Effects")
@@ -638,7 +789,7 @@ ApplicationWindow {
                             Layout.leftMargin: 20
                         }
 
-                        // Equalizer section
+                        // Equalizer
                         GroupBox {
                             Layout.fillWidth: true
                             Layout.margins: 20
@@ -668,6 +819,8 @@ ApplicationWindow {
                                 onCheckedChanged: {
                                     if (checked) {
                                         audioController.addEqualizerEffect()
+                                    } else {
+                                        audioController.removeEffect(0)
                                     }
                                 }
                             }
@@ -676,11 +829,12 @@ ApplicationWindow {
                                 anchors.fill: parent
                                 spacing: 15
                                 enabled: equalizerCheck.checked
+                                opacity: equalizerCheck.checked ? 1.0 : 0.5
 
                                 ComboBox {
                                     id: eqPresetCombo
                                     Layout.fillWidth: true
-                                    model: ["Flat", "Rock", "Jazz", "Classical", "Pop", "Electronic"]
+                                    model: ["Flat", "Rock", "Jazz", "Classical"]
 
                                     background: Rectangle {
                                         radius: 6
@@ -699,6 +853,17 @@ ApplicationWindow {
                                     onCurrentTextChanged: {
                                         if (equalizerCheck.checked) {
                                             audioController.setEqualizerPreset(currentText)
+
+                                            // Reset sliders to 0 when preset changes
+                                            for (var i = 0; i < eqRepeater.count; i++) {
+                                                var item = eqRepeater.itemAt(i)
+                                                if (item && item.children.length > 1) {
+                                                    var slider = item.children[1]
+                                                    if (slider) {
+                                                        slider.value = 0
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -710,6 +875,7 @@ ApplicationWindow {
                                     columnSpacing: 8
 
                                     Repeater {
+                                        id: eqRepeater
                                         model: 10
 
                                         ColumnLayout {
@@ -728,14 +894,14 @@ ApplicationWindow {
                                                 Layout.preferredHeight: 150
                                                 Layout.alignment: Qt.AlignHCenter
                                                 orientation: Qt.Vertical
-                                                from: -12
-                                                to: 12
+                                                from: 12
+                                                to: -12
                                                 value: 0
                                                 stepSize: 0.5
 
                                                 onValueChanged: {
                                                     if (equalizerCheck.checked) {
-                                                        audioController.setEqualizerBand(index, value)
+                                                        audioController.setEqualizerBand(index, -value)
                                                     }
                                                 }
 
@@ -772,7 +938,7 @@ ApplicationWindow {
 
                                             Label {
                                                 Layout.alignment: Qt.AlignHCenter
-                                                text: eqSlider.value.toFixed(1)
+                                                text: (-eqSlider.value).toFixed(1)
                                                 font.pixelSize: 9
                                                 color: root.textSecondaryColor
                                             }
@@ -782,7 +948,7 @@ ApplicationWindow {
                             }
                         }
 
-                        // Reverb section
+                        // Reverb
                         GroupBox {
                             Layout.fillWidth: true
                             Layout.margins: 20
@@ -812,6 +978,8 @@ ApplicationWindow {
                                 onCheckedChanged: {
                                     if (checked) {
                                         audioController.addReverbEffect()
+                                    } else {
+                                        audioController.removeEffect(1)
                                     }
                                 }
                             }
@@ -820,6 +988,7 @@ ApplicationWindow {
                                 anchors.fill: parent
                                 spacing: 20
                                 enabled: reverbCheck.checked
+                                opacity: reverbCheck.checked ? 1.0 : 0.5
 
                                 RowLayout {
                                     Layout.fillWidth: true
@@ -842,6 +1011,35 @@ ApplicationWindow {
                                             if (reverbCheck.checked) {
                                                 audioController.setReverbRoomSize(value)
                                             }
+                                        }
+
+                                        background: Rectangle {
+                                            x: roomSizeSlider.leftPadding
+                                            y: roomSizeSlider.topPadding + roomSizeSlider.availableHeight / 2 - height / 2
+                                            implicitWidth: 200
+                                            implicitHeight: 4
+                                            width: roomSizeSlider.availableWidth
+                                            height: implicitHeight
+                                            radius: 2
+                                            color: root.surfaceLightColor
+
+                                            Rectangle {
+                                                width: roomSizeSlider.visualPosition * parent.width
+                                                height: parent.height
+                                                color: root.primaryColor
+                                                radius: 2
+                                            }
+                                        }
+
+                                        handle: Rectangle {
+                                            x: roomSizeSlider.leftPadding + roomSizeSlider.visualPosition * (roomSizeSlider.availableWidth - width)
+                                            y: roomSizeSlider.topPadding + roomSizeSlider.availableHeight / 2 - height / 2
+                                            implicitWidth: 16
+                                            implicitHeight: 16
+                                            radius: 8
+                                            color: roomSizeSlider.pressed ? root.primaryColor : root.textColor
+                                            border.color: root.primaryColor
+                                            border.width: 2
                                         }
                                     }
 
@@ -874,6 +1072,35 @@ ApplicationWindow {
                                                 audioController.setReverbDamping(value)
                                             }
                                         }
+
+                                        background: Rectangle {
+                                            x: dampingSlider.leftPadding
+                                            y: dampingSlider.topPadding + dampingSlider.availableHeight / 2 - height / 2
+                                            implicitWidth: 200
+                                            implicitHeight: 4
+                                            width: dampingSlider.availableWidth
+                                            height: implicitHeight
+                                            radius: 2
+                                            color: root.surfaceLightColor
+
+                                            Rectangle {
+                                                width: dampingSlider.visualPosition * parent.width
+                                                height: parent.height
+                                                color: root.primaryColor
+                                                radius: 2
+                                            }
+                                        }
+
+                                        handle: Rectangle {
+                                            x: dampingSlider.leftPadding + dampingSlider.visualPosition * (dampingSlider.availableWidth - width)
+                                            y: dampingSlider.topPadding + dampingSlider.availableHeight / 2 - height / 2
+                                            implicitWidth: 16
+                                            implicitHeight: 16
+                                            radius: 8
+                                            color: dampingSlider.pressed ? root.primaryColor : root.textColor
+                                            border.color: root.primaryColor
+                                            border.width: 2
+                                        }
                                     }
 
                                     Label {
@@ -905,6 +1132,35 @@ ApplicationWindow {
                                                 audioController.setReverbMix(value)
                                             }
                                         }
+
+                                        background: Rectangle {
+                                            x: wetDrySlider.leftPadding
+                                            y: wetDrySlider.topPadding + wetDrySlider.availableHeight / 2 - height / 2
+                                            implicitWidth: 200
+                                            implicitHeight: 4
+                                            width: wetDrySlider.availableWidth
+                                            height: implicitHeight
+                                            radius: 2
+                                            color: root.surfaceLightColor
+
+                                            Rectangle {
+                                                width: wetDrySlider.visualPosition * parent.width
+                                                height: parent.height
+                                                color: root.primaryColor
+                                                radius: 2
+                                            }
+                                        }
+
+                                        handle: Rectangle {
+                                            x: wetDrySlider.leftPadding + wetDrySlider.visualPosition * (wetDrySlider.availableWidth - width)
+                                            y: wetDrySlider.topPadding + wetDrySlider.availableHeight / 2 - height / 2
+                                            implicitWidth: 16
+                                            implicitHeight: 16
+                                            radius: 8
+                                            color: wetDrySlider.pressed ? root.primaryColor : root.textColor
+                                            border.color: root.primaryColor
+                                            border.width: 2
+                                        }
                                     }
 
                                     Label {
@@ -916,7 +1172,7 @@ ApplicationWindow {
                             }
                         }
 
-                        // Bass Boost section
+                        // Bass Boost
                         GroupBox {
                             Layout.fillWidth: true
                             Layout.margins: 20
@@ -946,6 +1202,8 @@ ApplicationWindow {
                                 onCheckedChanged: {
                                     if (checked) {
                                         audioController.addBassBoostEffect()
+                                    } else {
+                                        audioController.removeEffect(2)
                                     }
                                 }
                             }
@@ -954,6 +1212,7 @@ ApplicationWindow {
                                 anchors.fill: parent
                                 spacing: 20
                                 enabled: bassBoostCheck.checked
+                                opacity: bassBoostCheck.checked ? 1.0 : 0.5
 
                                 RowLayout {
                                     Layout.fillWidth: true
@@ -977,6 +1236,35 @@ ApplicationWindow {
                                                 audioController.setBassBoostLevel(value)
                                             }
                                         }
+
+                                        background: Rectangle {
+                                            x: bassLevelSlider.leftPadding
+                                            y: bassLevelSlider.topPadding + bassLevelSlider.availableHeight / 2 - height / 2
+                                            implicitWidth: 200
+                                            implicitHeight: 4
+                                            width: bassLevelSlider.availableWidth
+                                            height: implicitHeight
+                                            radius: 2
+                                            color: root.surfaceLightColor
+
+                                            Rectangle {
+                                                width: bassLevelSlider.visualPosition * parent.width
+                                                height: parent.height
+                                                color: root.primaryColor
+                                                radius: 2
+                                            }
+                                        }
+
+                                        handle: Rectangle {
+                                            x: bassLevelSlider.leftPadding + bassLevelSlider.visualPosition * (bassLevelSlider.availableWidth - width)
+                                            y: bassLevelSlider.topPadding + bassLevelSlider.availableHeight / 2 - height / 2
+                                            implicitWidth: 16
+                                            implicitHeight: 16
+                                            radius: 8
+                                            color: bassLevelSlider.pressed ? root.primaryColor : root.textColor
+                                            border.color: root.primaryColor
+                                            border.width: 2
+                                        }
                                     }
 
                                     Label {
@@ -994,8 +1282,6 @@ ApplicationWindow {
             }
         }
 
-
-
         // ========== BOTTOM PLAYER CONTROLS ==========
         Rectangle {
             id: bottomControlBar
@@ -1004,7 +1290,6 @@ ApplicationWindow {
             color: root.surfaceColor
             z: 10
 
-            // Top border
             Rectangle {
                 anchors.top: parent.top
                 width: parent.width
@@ -1012,332 +1297,329 @@ ApplicationWindow {
                 color: root.surfaceLightColor
             }
 
-            RowLayout {
+            ColumnLayout {
                 anchors.fill: parent
                 anchors.margins: 15
-                spacing: 20
+                spacing: 8
 
-                // Left section: Album art and track info
                 RowLayout {
-                    Layout.preferredWidth: 280
-                    Layout.alignment: Qt.AlignVCenter
-                    spacing: 15
+                    Layout.fillWidth: true
+                    spacing: 20
 
-                    // Album art thumbnail
-                    Rectangle {
-                        Layout.preferredWidth: 200
-                        Layout.preferredHeight: 200
-                        color: "#1E1E1E"
-                        radius: 10
-                        clip: true  // Add this line
+                    // Left: Album art and track info
+                    RowLayout {
+                        Layout.preferredWidth: 280
+                        Layout.alignment: Qt.AlignVCenter
+                        spacing: 15
 
-                        Image {
-                            anchors.fill: parent
-                            anchors.margins: 2
-                            source: audioController.thumbnailUrl !== "" ?
-                                   audioController.thumbnailUrl : "qrc:/assests/default.jpg"
-                            fillMode: Image.PreserveAspectCrop
-                            smooth: true
+                        Rectangle {
+                            Layout.preferredWidth: 80
+                            Layout.preferredHeight: 80
+                            color: "#1E1E1E"
+                            radius: 8
+                            clip: true
+
+                            Image {
+                                anchors.fill: parent
+                                anchors.margins: 2
+                                source: audioController.thumbnailUrl !== "" ?
+                                       audioController.thumbnailUrl : "qrc:/assests/default.jpg"
+                                fillMode: Image.PreserveAspectCrop
+                                smooth: true
+                            }
+                        }
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 5
+
+                            Label {
+                                Layout.fillWidth: true
+                                text: audioController.trackTitle || qsTr("No track")
+                                font.pixelSize: 16
+                                font.bold: true
+                                color: root.textColor
+                                elide: Text.ElideRight
+                                maximumLineCount: 1
+                            }
+
+                            Label {
+                                Layout.fillWidth: true
+                                text: audioController.trackArtist || qsTr("No artist")
+                                font.pixelSize: 13
+                                color: root.textSecondaryColor
+                                elide: Text.ElideRight
+                                maximumLineCount: 1
+                            }
                         }
                     }
 
-                    // Track info
+                    // Center: Playback controls
                     ColumnLayout {
                         Layout.fillWidth: true
-                        spacing: 5
+                        Layout.alignment: Qt.AlignVCenter
+                        spacing: 8
 
-                        Label {
-                            Layout.fillWidth: true
-                            text: audioController.trackTitle || qsTr("No track")
-                            font.pixelSize: 16
-                            font.bold: true
-                            color: root.textColor
-                            elide: Text.ElideRight
-                            maximumLineCount: 1
-                        }
+                        RowLayout {
+                            Layout.alignment: Qt.AlignHCenter
+                            spacing: 25
 
-                        Label {
-                            Layout.fillWidth: true
-                            text: audioController.trackArtist || qsTr("No artist")
-                            font.pixelSize: 13
-                            color: root.textSecondaryColor
-                            elide: Text.ElideRight
-                            maximumLineCount: 1
-                        }
-                    }
-                }
+                            Button {
+                                id: prevButton
+                                implicitWidth: 40
+                                implicitHeight: 40
+                                enabled: audioController.duration > 0
+                                flat: true
 
-                // Center section: Playback controls
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    Layout.maximumWidth: 700
-                    Layout.alignment: Qt.AlignVCenter
-                    spacing: 12
-
-                    // Control buttons
-                    RowLayout {
-                        Layout.alignment: Qt.AlignHCenter
-                        spacing: 25
-
-                        // Previous button
-                        Button {
-                            id: prevButton
-                            implicitWidth: 40
-                            implicitHeight: 40
-                            enabled: audioController.duration > 0
-                            flat: true
-
-                            contentItem: Label {
-                                text: "⏮"
-                                color: prevButton.enabled ? root.textColor : root.surfaceLightColor
-                                font.pixelSize: 22
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                            }
-
-                            background: Rectangle {
-                                radius: 20
-                                color: prevButton.hovered && prevButton.enabled ?
-                                       root.hoverColor : "transparent"
-
-                                Behavior on color {
-                                    ColorAnimation { duration: 150 }
-                                }
-                            }
-
-                            onClicked: {
-                                audioController.seek(0)
-                            }
-                        }
-
-                        // Play/Pause button
-                        Button {
-                            id: playPauseButton
-                            implicitWidth: 50
-                            implicitHeight: 50
-                            enabled: audioController.duration > 0
-
-                            onClicked: {
-                                if (audioController.isPlaying) {
-                                    audioController.pause()
-                                } else {
-                                    audioController.play()
-                                }
-                            }
-
-                            background: Rectangle {
-                                radius: 25
-                                color: playPauseButton.enabled ?
-                                       (playPauseButton.pressed ? Qt.darker(root.primaryColor, 1.2) :
-                                        playPauseButton.hovered ? Qt.lighter(root.primaryColor, 1.1) :
-                                        root.primaryColor) : root.surfaceLightColor
-
-                                Behavior on color {
-                                    ColorAnimation { duration: 150 }
+                                contentItem: Label {
+                                    text: "⏮"
+                                    color: prevButton.enabled ? root.textColor : root.surfaceLightColor
+                                    font.pixelSize: 22
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
                                 }
 
-                                // Pulse animation when playing
-                                SequentialAnimation on scale {
-                                    running: audioController.isPlaying
-                                    loops: Animation.Infinite
-                                    NumberAnimation {
-                                        from: 1.0
-                                        to: 1.05
-                                        duration: 800
-                                        easing.type: Easing.InOutQuad
-                                    }
-                                    NumberAnimation {
-                                        from: 1.05
-                                        to: 1.0
-                                        duration: 800
-                                        easing.type: Easing.InOutQuad
+                                background: Rectangle {
+                                    radius: 20
+                                    color: prevButton.hovered && prevButton.enabled ?
+                                           root.hoverColor : "transparent"
+
+                                    Behavior on color {
+                                        ColorAnimation { duration: 150 }
                                     }
                                 }
-                            }
 
-                            contentItem: Image {
-                                source: audioController.isPlaying ?
-                                       "qrc:/assests/pause.png" : "qrc:/assests/play.png"
-                                sourceSize.width: 24
-                                sourceSize.height: 24
-                                fillMode: Image.PreserveAspectFit
-                            }
-                        }
-
-                        // Next button
-                        Button {
-                            id: nextButton
-                            implicitWidth: 40
-                            implicitHeight: 40
-                            enabled: audioController.duration > 0
-                            flat: true
-
-                            contentItem: Label {
-                                text: "⏭"
-                                color: nextButton.enabled ? root.textColor : root.surfaceLightColor
-                                font.pixelSize: 22
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
-                            }
-
-                            background: Rectangle {
-                                radius: 20
-                                color: nextButton.hovered && nextButton.enabled ?
-                                       root.hoverColor : "transparent"
-
-                                Behavior on color {
-                                    ColorAnimation { duration: 150 }
+                                onClicked: {
+                                    audioController.seek(0)
                                 }
                             }
 
-                            onClicked: {
-                                audioController.playNext()
+                            Button {
+                                id: playPauseButton
+                                implicitWidth: 50
+                                implicitHeight: 50
+                                enabled: audioController.duration > 0
+
+                                onClicked: {
+                                    if (audioController.isPlaying) {
+                                        audioController.pause()
+                                    } else {
+                                        audioController.play()
+                                    }
+                                }
+
+                                background: Rectangle {
+                                    radius: 25
+                                    color: playPauseButton.enabled ?
+                                           (playPauseButton.pressed ? Qt.darker(root.primaryColor, 1.2) :
+                                            playPauseButton.hovered ? Qt.lighter(root.primaryColor, 1.1) :
+                                            root.primaryColor) : root.surfaceLightColor
+
+                                    Behavior on color {
+                                        ColorAnimation { duration: 150 }
+                                    }
+
+                                    SequentialAnimation on scale {
+                                        running: audioController.isPlaying
+                                        loops: Animation.Infinite
+                                        NumberAnimation {
+                                            from: 1.0
+                                            to: 1.05
+                                            duration: 800
+                                            easing.type: Easing.InOutQuad
+                                        }
+                                        NumberAnimation {
+                                            from: 1.05
+                                            to: 1.0
+                                            duration: 800
+                                            easing.type: Easing.InOutQuad
+                                        }
+                                    }
+                                }
+
+                                contentItem: Image {
+                                    source: audioController.isPlaying ?
+                                           "qrc:/assests/pause.png" : "qrc:/assests/play.png"
+                                    sourceSize.width: 24
+                                    sourceSize.height: 24
+                                    fillMode: Image.PreserveAspectFit
+                                }
+                            }
+
+                            Button {
+                                id: nextButton
+                                implicitWidth: 40
+                                implicitHeight: 40
+                                enabled: audioController.duration > 0
+                                flat: true
+
+                                contentItem: Label {
+                                    text: "⏭"
+                                    color: nextButton.enabled ? root.textColor : root.surfaceLightColor
+                                    font.pixelSize: 22
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                }
+
+                                background: Rectangle {
+                                    radius: 20
+                                    color: nextButton.hovered && nextButton.enabled ?
+                                           root.hoverColor : "transparent"
+
+                                    Behavior on color {
+                                        ColorAnimation { duration: 150 }
+                                    }
+                                }
+
+                                onClicked: {
+                                    audioController.playNext()
+                                }
                             }
                         }
                     }
 
-                    // Progress bar
+                    // Right: Volume control
                     RowLayout {
-                        Layout.fillWidth: true
+                        Layout.preferredWidth: 180
+                        Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
                         spacing: 10
 
-                        Label {
-                            text: formatTime(audioController.position)
-                            font.pixelSize: 12
-                            color: root.textSecondaryColor
-                            Layout.preferredWidth: 45
+                        Image {
+                            id: volumeIcon
+                            source: "qrc:/assests/volume.png"
+                            sourceSize.width: 24
+                            sourceSize.height: 24
+                            Layout.alignment: Qt.AlignVCenter
                         }
 
                         Slider {
-                            id: progressSlider
+                            id: volumeSlider
                             Layout.fillWidth: true
+                            Layout.alignment: Qt.AlignVCenter
                             from: 0
-                            to: audioController.duration > 0 ? audioController.duration : 100
-                            value: audioController.position
-                            enabled: audioController.duration > 0
+                            to: 1
+                            value: audioController.volume
 
-                            onPressedChanged: {
-                                if (!pressed && enabled) {
-                                    audioController.seek(value)
-                                }
-                            }
-
-                            Binding {
-                                target: progressSlider
-                                property: "value"
-                                value: audioController.position
-                                when: !progressSlider.pressed
-                                restoreMode: Binding.RestoreBinding
+                            onMoved: {
+                                audioController.setVolume(value)
                             }
 
                             handle: Rectangle {
-                                x: progressSlider.leftPadding + progressSlider.visualPosition *
-                                   (progressSlider.availableWidth - width)
-                                y: progressSlider.topPadding + progressSlider.availableHeight / 2 - height / 2
-                                implicitWidth: 14
-                                implicitHeight: 14
-                                radius: 7
+                                x: volumeSlider.leftPadding + volumeSlider.visualPosition *
+                                   (volumeSlider.availableWidth - width)
+                                y: volumeSlider.topPadding + volumeSlider.availableHeight / 2 - height / 2
+                                implicitWidth: 12
+                                implicitHeight: 12
+                                radius: 6
                                 color: root.textColor
-                                visible: progressSlider.hovered || progressSlider.pressed
-
-                                Behavior on visible {
-                                    NumberAnimation { duration: 100 }
-                                }
+                                visible: volumeSlider.hovered || volumeSlider.pressed
                             }
 
                             background: Rectangle {
-                                x: progressSlider.leftPadding
-                                y: progressSlider.topPadding + progressSlider.availableHeight / 2 - height / 2
-                                implicitWidth: 200
+                                x: volumeSlider.leftPadding
+                                y: volumeSlider.topPadding + volumeSlider.availableHeight / 2 - height / 2
+                                implicitWidth: 100
                                 implicitHeight: 4
-                                width: progressSlider.availableWidth
+                                width: volumeSlider.availableWidth
                                 height: implicitHeight
                                 radius: 2
                                 color: root.surfaceLightColor
 
                                 Rectangle {
-                                    width: progressSlider.visualPosition * parent.width
+                                    width: volumeSlider.visualPosition * parent.width
                                     height: parent.height
                                     radius: 2
                                     color: root.primaryColor
-
-                                    Behavior on width {
-                                        NumberAnimation { duration: 100 }
-                                    }
                                 }
                             }
                         }
 
                         Label {
-                            text: formatTime(audioController.duration)
+                            text: Math.round(audioController.volume * 100) + "%"
                             font.pixelSize: 12
                             color: root.textSecondaryColor
-                            Layout.preferredWidth: 45
+                            Layout.preferredWidth: 40
                         }
                     }
                 }
 
-                // Right section: Volume control
+                // Progress bar (second row)
                 RowLayout {
-                    Layout.preferredWidth: 180
-                    Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+                    Layout.fillWidth: true
                     spacing: 10
 
-                    Image {
-                        id: volumeIcon
-                        source: "qrc:/assests/volume.png"
-                        sourceSize.width: 24
-                        sourceSize.height: 24
-                        Layout.alignment: Qt.AlignVCenter
+                    Label {
+                        text: formatTime(audioController.position)
+                        font.pixelSize: 12
+                        color: root.textSecondaryColor
+                        Layout.preferredWidth: 45
                     }
 
                     Slider {
-                        id: volumeSlider
+                        id: progressSlider
                         Layout.fillWidth: true
-                        Layout.alignment: Qt.AlignVCenter
                         from: 0
-                        to: 1
-                        value: audioController.volume
+                        to: audioController.duration > 0 ? audioController.duration : 100
+                        value: audioController.position
+                        enabled: audioController.duration > 0
 
-                        onMoved: {
-                            audioController.setVolume(value)
+                        onPressedChanged: {
+                            if (!pressed && enabled) {
+                                audioController.seek(value)
+                            }
+                        }
+
+                        Binding {
+                            target: progressSlider
+                            property: "value"
+                            value: audioController.position
+                            when: !progressSlider.pressed
+                            restoreMode: Binding.RestoreBinding
                         }
 
                         handle: Rectangle {
-                            x: volumeSlider.leftPadding + volumeSlider.visualPosition *
-                               (volumeSlider.availableWidth - width)
-                            y: volumeSlider.topPadding + volumeSlider.availableHeight / 2 - height / 2
-                            implicitWidth: 12
-                            implicitHeight: 12
-                            radius: 6
+                            x: progressSlider.leftPadding + progressSlider.visualPosition *
+                               (progressSlider.availableWidth - width)
+                            y: progressSlider.topPadding + progressSlider.availableHeight / 2 - height / 2
+                            implicitWidth: 14
+                            implicitHeight: 14
+                            radius: 7
                             color: root.textColor
-                            visible: volumeSlider.hovered || volumeSlider.pressed
+                            visible: progressSlider.hovered || progressSlider.pressed
+
+                            Behavior on visible {
+                                NumberAnimation { duration: 100 }
+                            }
                         }
 
                         background: Rectangle {
-                            x: volumeSlider.leftPadding
-                            y: volumeSlider.topPadding + volumeSlider.availableHeight / 2 - height / 2
-                            implicitWidth: 100
+                            x: progressSlider.leftPadding
+                            y: progressSlider.topPadding + progressSlider.availableHeight / 2 - height / 2
+                            implicitWidth: 200
                             implicitHeight: 4
-                            width: volumeSlider.availableWidth
+                            width: progressSlider.availableWidth
                             height: implicitHeight
                             radius: 2
                             color: root.surfaceLightColor
 
                             Rectangle {
-                                width: volumeSlider.visualPosition * parent.width
+                                width: progressSlider.visualPosition * parent.width
                                 height: parent.height
                                 radius: 2
                                 color: root.primaryColor
+
+                                Behavior on width {
+                                    NumberAnimation { duration: 100 }
+                                }
                             }
                         }
                     }
 
                     Label {
-                        text: Math.round(audioController.volume * 100) + "%"
+                        text: formatTime(audioController.duration)
                         font.pixelSize: 12
                         color: root.textSecondaryColor
-                        Layout.preferredWidth: 40
+                        Layout.preferredWidth: 45
                     }
                 }
             }
@@ -1354,7 +1636,7 @@ ApplicationWindow {
 
         MouseArea {
             anchors.fill: parent
-            onClicked: {} // Prevent clicks through
+            onClicked: {}
         }
 
         ColumnLayout {
@@ -1425,6 +1707,78 @@ ApplicationWindow {
         }
     }
 
+    // ========== SCAN PROGRESS DIALOG ==========
+    Dialog {
+        id: scanProgressDialog
+        title: qsTr("Scanning Library")
+        modal: true
+        anchors.centerIn: parent
+        width: 400
+        height: 150
+
+        property int currentValue: 0
+        property int totalValue: 100
+
+        background: Rectangle {
+            color: root.surfaceColor
+            radius: 8
+            border.color: root.primaryColor
+            border.width: 2
+        }
+
+        ColumnLayout {
+            anchors.fill: parent
+            spacing: 15
+
+            Label {
+                Layout.fillWidth: true
+                text: qsTr("Scanning for audio files...")
+                font.pixelSize: 14
+                color: root.textColor
+            }
+
+            ProgressBar {
+                Layout.fillWidth: true
+                from: 0
+                to: scanProgressDialog.totalValue
+                value: scanProgressDialog.currentValue
+
+                background: Rectangle {
+                    implicitWidth: 200
+                    implicitHeight: 8
+                    color: root.surfaceLightColor
+                    radius: 4
+                }
+
+                contentItem: Item {
+                    implicitWidth: 200
+                    implicitHeight: 8
+
+                    Rectangle {
+                        width: parent.parent.visualPosition * parent.width
+                        height: parent.height
+                        radius: 4
+                        color: root.primaryColor
+                    }
+                }
+            }
+
+            Label {
+                Layout.fillWidth: true
+                text: scanProgressDialog.currentValue + " / " + scanProgressDialog.totalValue + " files"
+                font.pixelSize: 12
+                color: root.textSecondaryColor
+                horizontalAlignment: Text.AlignRight
+            }
+        }
+
+        onAccepted: {
+            close()
+        }
+
+        standardButtons: Dialog.Close
+    }
+
     // ========== ERROR NOTIFICATION ==========
     Rectangle {
         id: errorNotification
@@ -1483,7 +1837,6 @@ ApplicationWindow {
             }
         }
 
-        // Auto-hide after 5 seconds
         Timer {
             id: errorTimer
             interval: 5000
@@ -1504,13 +1857,11 @@ ApplicationWindow {
     Connections {
         target: audioController
 
-        function onErrorOccurred(error, errorString) {
-            errorNotification.show(errorString)
-        }
-
         function onMediaStatusChanged() {
             if (audioController.mediaStatus === AudioController.Error) {
                 errorNotification.show("Failed to load media")
+            } else if (audioController.mediaStatus === AudioController.Loaded) {
+                scanProgressDialog.close()
             }
         }
     }
