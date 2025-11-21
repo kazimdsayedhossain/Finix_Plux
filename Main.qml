@@ -768,6 +768,8 @@ ApplicationWindow {
             }
 
             // ========== PAGE 2: EFFECTS VIEW ==========
+            // ========== PAGE 2: WORKING EFFECTS VIEW ==========
+            // ========== PAGE 2: WORKING EFFECTS VIEW (FIXED ALIGNMENT) ==========
             Rectangle {
                 color: root.backgroundColor
 
@@ -789,7 +791,38 @@ ApplicationWindow {
                             Layout.leftMargin: 20
                         }
 
-                        // Equalizer
+                        // Info banner
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.margins: 20
+                            Layout.preferredHeight: 60
+                            color: "#1E3A5F"
+                            radius: 8
+                            border.color: root.primaryColor
+                            border.width: 1
+
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.margins: 15
+                                spacing: 15
+
+                                Label {
+                                    text: "✓"
+                                    font.pixelSize: 24
+                                    color: root.primaryColor
+                                }
+
+                                Label {
+                                    Layout.fillWidth: true
+                                    text: qsTr("These effects are fully functional using Qt's audio system")
+                                    font.pixelSize: 13
+                                    color: root.textColor
+                                    wrapMode: Text.WordWrap
+                                }
+                            }
+                        }
+
+                        // Gain Boost Effect
                         GroupBox {
                             Layout.fillWidth: true
                             Layout.margins: 20
@@ -801,478 +834,550 @@ ApplicationWindow {
                                 border.width: 1
                             }
 
-                            label: CheckBox {
-                                id: equalizerCheck
-                                text: qsTr("10-Band Equalizer")
-                                checked: false
+                            label: Label {
+                                text: qsTr("🔊 Volume Gain Boost")
                                 font.pixelSize: 18
                                 font.bold: true
+                                color: root.textColor
+                                // leftPadding: 10
+                                anchors.horizontalCenter: parent.horizontalCenter
+                            }
 
-                                contentItem: Text {
-                                    text: equalizerCheck.text
-                                    font: equalizerCheck.font
-                                    color: root.textColor
-                                    leftPadding: equalizerCheck.indicator.width + 10
-                                    verticalAlignment: Text.AlignVCenter
+                            ColumnLayout {
+                                anchors.fill: parent
+                                spacing: 20
+
+
+                                Label {
+
+                                    font.pixelSize: 12
+                                    color: root.textSecondaryColor
                                 }
 
-                                onCheckedChanged: {
-                                    if (checked) {
-                                        audioController.addEqualizerEffect()
-                                    } else {
-                                        audioController.removeEffect(0)
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 15
+
+                                    Label {
+                                        text: qsTr("Gain:")
+                                        color: root.textColor
+                                        Layout.preferredWidth: 80
+                                        Layout.alignment: Qt.AlignVCenter
+                                    }
+
+                                    Slider {
+                                        id: gainSlider
+                                        Layout.fillWidth: true
+                                        Layout.alignment: Qt.AlignVCenter
+                                        from: 0.0
+                                        to: 2.0
+                                        value: 1.0
+                                        stepSize: 0.1
+
+                                        onValueChanged: {
+                                            audioController.setGainBoost(value)
+                                        }
+
+                                        background: Rectangle {
+                                            x: gainSlider.leftPadding
+                                            y: gainSlider.topPadding + gainSlider.availableHeight / 2 - height / 2
+                                            implicitWidth: 200
+                                            implicitHeight: 6
+                                            width: gainSlider.availableWidth
+                                            height: implicitHeight
+                                            radius: 3
+                                            color: root.surfaceLightColor
+
+                                            Rectangle {
+                                                width: gainSlider.visualPosition * parent.width
+                                                height: parent.height
+                                                color: gainSlider.value > 1.0 ? "#FFA500" : root.primaryColor
+                                                radius: 3
+                                            }
+                                        }
+
+                                        handle: Rectangle {
+                                            x: gainSlider.leftPadding + gainSlider.visualPosition * (gainSlider.availableWidth - width)
+                                            y: gainSlider.topPadding + gainSlider.availableHeight / 2 - height / 2
+                                            implicitWidth: 20
+                                            implicitHeight: 20
+                                            radius: 10
+                                            color: gainSlider.pressed ? root.primaryColor : root.textColor
+                                            border.color: gainSlider.value > 1.0 ? "#FFA500" : root.primaryColor
+                                            border.width: 2
+                                        }
+                                    }
+
+                                    Label {
+                                        text: (gainSlider.value * 100).toFixed(0) + "%"
+                                        color: gainSlider.value > 1.0 ? "#FFA500" : root.textColor
+                                        font.bold: gainSlider.value > 1.0
+                                        Layout.preferredWidth: 60
+                                        Layout.alignment: Qt.AlignVCenter
+                                        horizontalAlignment: Text.AlignRight
                                     }
                                 }
+
+                                Label {
+                                    text: gainSlider.value > 1.0 ?
+                                        qsTr("⚠️ Warning: High gain may cause distortion") :
+                                        qsTr("Normal audio level")
+                                    font.pixelSize: 10
+                                    color: gainSlider.value > 1.0 ? "#FFA500" : root.textSecondaryColor
+                                    visible: true
+                                }
+                            }
+                        }
+
+                        // Balance/Pan Control
+                        GroupBox {
+                            Layout.fillWidth: true
+                            Layout.margins: 20
+
+                            background: Rectangle {
+                                color: root.surfaceColor
+                                radius: 12
+                                border.color: root.surfaceLightColor
+                                border.width: 1
+                            }
+
+                            label: Label {
+                                text: qsTr("🎚️ Stereo Balance")
+                                font.pixelSize: 18
+                                font.bold: true
+                                color: root.textColor
+                                // leftPadding: 10
+                                anchors.horizontalCenter: parent.horizontalCenter
+                            }
+
+                            ColumnLayout {
+                                anchors.fill: parent
+                                spacing: 20
+
+
+                                Label {
+
+                                    font.pixelSize: 12
+                                    color: root.textSecondaryColor
+                                }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 15
+
+                                    Label {
+                                        text: qsTr("L")
+                                        color: root.textColor
+                                        font.bold: true
+                                        font.pixelSize: 14
+                                        Layout.preferredWidth: 20
+                                        Layout.alignment: Qt.AlignVCenter
+                                        horizontalAlignment: Text.AlignHCenter
+                                    }
+
+                                    Slider {
+                                        id: balanceSlider
+                                        Layout.fillWidth: true
+                                        Layout.alignment: Qt.AlignVCenter
+                                        from: -1.0
+                                        to: 1.0
+                                        value: 0.0
+                                        stepSize: 0.1
+
+                                        onValueChanged: {
+                                            audioController.setBalance(value)
+                                        }
+
+                                        background: Rectangle {
+                                            x: balanceSlider.leftPadding
+                                            y: balanceSlider.topPadding + balanceSlider.availableHeight / 2 - height / 2
+                                            implicitWidth: 200
+                                            implicitHeight: 6
+                                            width: balanceSlider.availableWidth
+                                            height: implicitHeight
+                                            radius: 3
+                                            color: root.surfaceLightColor
+
+                                            Rectangle {
+                                                x: balanceSlider.value < 0 ?
+                                                   parent.width / 2 + (balanceSlider.value * parent.width / 2) :
+                                                   parent.width / 2
+                                                width: Math.abs(balanceSlider.value * parent.width / 2)
+                                                height: parent.height
+                                                color: root.primaryColor
+                                                radius: 3
+                                            }
+
+                                            // Center marker
+                                            Rectangle {
+                                                x: parent.width / 2 - width / 2
+                                                y: -2
+                                                width: 2
+                                                height: parent.height + 4
+                                                color: root.textColor
+                                                opacity: 0.3
+                                            }
+                                        }
+
+                                        handle: Rectangle {
+                                            x: balanceSlider.leftPadding + balanceSlider.visualPosition * (balanceSlider.availableWidth - width)
+                                            y: balanceSlider.topPadding + balanceSlider.availableHeight / 2 - height / 2
+                                            implicitWidth: 20
+                                            implicitHeight: 20
+                                            radius: 10
+                                            color: balanceSlider.pressed ? root.primaryColor : root.textColor
+                                            border.color: root.primaryColor
+                                            border.width: 2
+                                        }
+                                    }
+
+                                    Label {
+                                        text: qsTr("R")
+                                        color: root.textColor
+                                        font.bold: true
+                                        font.pixelSize: 14
+                                        Layout.preferredWidth: 20
+                                        Layout.alignment: Qt.AlignVCenter
+                                        horizontalAlignment: Text.AlignHCenter
+                                    }
+                                }
+
+                                Label {
+                                    text: balanceSlider.value < -0.1 ?
+                                        qsTr("← Left: " + Math.abs(balanceSlider.value * 100).toFixed(0) + "%") :
+                                        balanceSlider.value > 0.1 ?
+                                        qsTr("Right: " + (balanceSlider.value * 100).toFixed(0) + "% →") :
+                                        qsTr("Center (Balanced)")
+                                    font.pixelSize: 11
+                                    color: root.textSecondaryColor
+                                    Layout.alignment: Qt.AlignHCenter
+                                }
+                            }
+                        }
+
+                        // Playback Speed/Pitch
+                        GroupBox {
+                            Layout.fillWidth: true
+                            Layout.margins: 20
+
+                            background: Rectangle {
+                                color: root.surfaceColor
+                                radius: 12
+                                border.color: root.surfaceLightColor
+                                border.width: 1
+                            }
+
+                            label: Label {
+                                text: qsTr("⏩ Playback Speed")
+                                font.pixelSize: 18
+                                font.bold: true
+                                color: root.textColor
+                                // leftPadding: 10
+                                anchors.horizontalCenter: parent.horizontalCenter
+                            }
+
+                            ColumnLayout {
+                                anchors.fill: parent
+                                spacing: 20
+
+                                Label {
+
+                                    font.pixelSize: 12
+                                    color: root.textSecondaryColor
+                                }
+
+                                RowLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 15
+
+                                    Label {
+                                        text: qsTr("Speed:")
+                                        color: root.textColor
+                                        Layout.preferredWidth: 80
+                                        Layout.alignment: Qt.AlignVCenter
+                                    }
+
+                                    Slider {
+                                        id: speedSlider
+                                        Layout.fillWidth: true
+                                        Layout.alignment: Qt.AlignVCenter
+                                        from: 0.25
+                                        to: 2.0
+                                        value: 1.0
+                                        stepSize: 0.05
+
+                                        onValueChanged: {
+                                            audioController.setPlaybackRate(value)
+                                        }
+
+                                        background: Rectangle {
+                                            x: speedSlider.leftPadding
+                                            y: speedSlider.topPadding + speedSlider.availableHeight / 2 - height / 2
+                                            implicitWidth: 200
+                                            implicitHeight: 6
+                                            width: speedSlider.availableWidth
+                                            height: implicitHeight
+                                            radius: 3
+                                            color: root.surfaceLightColor
+
+                                            Rectangle {
+                                                width: speedSlider.visualPosition * parent.width
+                                                height: parent.height
+                                                color: root.primaryColor
+                                                radius: 3
+                                            }
+                                        }
+
+                                        handle: Rectangle {
+                                            x: speedSlider.leftPadding + speedSlider.visualPosition * (speedSlider.availableWidth - width)
+                                            y: speedSlider.topPadding + speedSlider.availableHeight / 2 - height / 2
+                                            implicitWidth: 20
+                                            implicitHeight: 20
+                                            radius: 10
+                                            color: speedSlider.pressed ? root.primaryColor : root.textColor
+                                            border.color: root.primaryColor
+                                            border.width: 2
+                                        }
+                                    }
+
+                                    Label {
+                                        text: speedSlider.value.toFixed(2) + "x"
+                                        color: root.textColor
+                                        Layout.preferredWidth: 60
+                                        Layout.alignment: Qt.AlignVCenter
+                                        horizontalAlignment: Text.AlignRight
+                                    }
+                                }
+
+                                // Speed preset buttons
+                                GridLayout {
+                                    Layout.fillWidth: true
+                                    Layout.leftMargin: 80
+                                    Layout.rightMargin: 60
+                                    columns: 6
+                                    rowSpacing: 8
+                                    columnSpacing: 8
+
+                                    Button {
+                                        text: "0.5x"
+                                        Layout.fillWidth: true
+                                        Layout.preferredHeight: 32
+                                        onClicked: speedSlider.value = 0.5
+
+                                        background: Rectangle {
+                                            radius: 6
+                                            color: parent.pressed ? root.primaryColor : root.surfaceLightColor
+                                            border.color: speedSlider.value === 0.5 ? root.primaryColor : "transparent"
+                                            border.width: 2
+                                        }
+                                        contentItem: Text {
+                                            text: parent.text
+                                            color: root.textColor
+                                            horizontalAlignment: Text.AlignHCenter
+                                            verticalAlignment: Text.AlignVCenter
+                                            font.pixelSize: 11
+                                        }
+                                    }
+
+                                    Button {
+                                        text: "0.75x"
+                                        Layout.fillWidth: true
+                                        Layout.preferredHeight: 32
+                                        onClicked: speedSlider.value = 0.75
+
+                                        background: Rectangle {
+                                            radius: 6
+                                            color: parent.pressed ? root.primaryColor : root.surfaceLightColor
+                                            border.color: speedSlider.value === 0.75 ? root.primaryColor : "transparent"
+                                            border.width: 2
+                                        }
+                                        contentItem: Text {
+                                            text: parent.text
+                                            color: root.textColor
+                                            horizontalAlignment: Text.AlignHCenter
+                                            verticalAlignment: Text.AlignVCenter
+                                            font.pixelSize: 11
+                                        }
+                                    }
+
+                                    Button {
+                                        text: "1.0x"
+                                        Layout.fillWidth: true
+                                        Layout.preferredHeight: 32
+                                        onClicked: speedSlider.value = 1.0
+
+                                        background: Rectangle {
+                                            radius: 6
+                                            color: parent.pressed ? root.primaryColor : root.surfaceLightColor
+                                            border.color: Math.abs(speedSlider.value - 1.0) < 0.01 ? root.primaryColor : "transparent"
+                                            border.width: 2
+                                        }
+                                        contentItem: Text {
+                                            text: parent.text
+                                            color: root.textColor
+                                            horizontalAlignment: Text.AlignHCenter
+                                            verticalAlignment: Text.AlignVCenter
+                                            font.pixelSize: 11
+                                            font.bold: true
+                                        }
+                                    }
+
+                                    Button {
+                                        text: "1.25x"
+                                        Layout.fillWidth: true
+                                        Layout.preferredHeight: 32
+                                        onClicked: speedSlider.value = 1.25
+
+                                        background: Rectangle {
+                                            radius: 6
+                                            color: parent.pressed ? root.primaryColor : root.surfaceLightColor
+                                            border.color: speedSlider.value === 1.25 ? root.primaryColor : "transparent"
+                                            border.width: 2
+                                        }
+                                        contentItem: Text {
+                                            text: parent.text
+                                            color: root.textColor
+                                            horizontalAlignment: Text.AlignHCenter
+                                            verticalAlignment: Text.AlignVCenter
+                                            font.pixelSize: 11
+                                        }
+                                    }
+
+                                    Button {
+                                        text: "1.5x"
+                                        Layout.fillWidth: true
+                                        Layout.preferredHeight: 32
+                                        onClicked: speedSlider.value = 1.5
+
+                                        background: Rectangle {
+                                            radius: 6
+                                            color: parent.pressed ? root.primaryColor : root.surfaceLightColor
+                                            border.color: speedSlider.value === 1.5 ? root.primaryColor : "transparent"
+                                            border.width: 2
+                                        }
+                                        contentItem: Text {
+                                            text: parent.text
+                                            color: root.textColor
+                                            horizontalAlignment: Text.AlignHCenter
+                                            verticalAlignment: Text.AlignVCenter
+                                            font.pixelSize: 11
+                                        }
+                                    }
+
+                                    Button {
+                                        text: "2.0x"
+                                        Layout.fillWidth: true
+                                        Layout.preferredHeight: 32
+                                        onClicked: speedSlider.value = 2.0
+
+                                        background: Rectangle {
+                                            radius: 6
+                                            color: parent.pressed ? root.primaryColor : root.surfaceLightColor
+                                            border.color: speedSlider.value === 2.0 ? root.primaryColor : "transparent"
+                                            border.width: 2
+                                        }
+                                        contentItem: Text {
+                                            text: parent.text
+                                            color: root.textColor
+                                            horizontalAlignment: Text.AlignHCenter
+                                            verticalAlignment: Text.AlignVCenter
+                                            font.pixelSize: 11
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Fade In Effect
+                        GroupBox {
+                            Layout.fillWidth: true
+                            Layout.margins: 20
+
+                            background: Rectangle {
+                                color: root.surfaceColor
+                                radius: 12
+                                border.color: root.surfaceLightColor
+                                border.width: 1
+                            }
+
+                            label: Label {
+                                text: qsTr("🎼 Fade In Effect")
+                                font.pixelSize: 18
+                                font.bold: true
+                                color: root.textColor
+                                // leftPadding: 10
+                                anchors.horizontalCenter: parent.horizontalCenter
                             }
 
                             ColumnLayout {
                                 anchors.fill: parent
                                 spacing: 15
-                                enabled: equalizerCheck.checked
-                                opacity: equalizerCheck.checked ? 1.0 : 0.5
 
-                                ComboBox {
-                                    id: eqPresetCombo
-                                    Layout.fillWidth: true
-                                    model: ["Flat", "Rock", "Jazz", "Classical"]
+                                Label {
 
-                                    background: Rectangle {
-                                        radius: 6
-                                        color: root.backgroundColor
-                                        border.color: root.primaryColor
-                                        border.width: 1
+                                    font.pixelSize: 12
+                                    color: root.textSecondaryColor
+                                }
+
+                                CheckBox {
+                                    id: fadeInCheck
+                                    text: qsTr("Enable Fade In (1 second)")
+                                    checked: false
+
+                                    onCheckedChanged: {
+                                        audioController.setFadeInEnabled(checked)
                                     }
 
                                     contentItem: Text {
-                                        text: eqPresetCombo.displayText
+                                        text: fadeInCheck.text
+                                        font.pixelSize: 14
                                         color: root.textColor
-                                        leftPadding: 10
+                                        leftPadding: fadeInCheck.indicator.width + 10
                                         verticalAlignment: Text.AlignVCenter
                                     }
-
-                                    onCurrentTextChanged: {
-                                        if (equalizerCheck.checked) {
-                                            audioController.setEqualizerPreset(currentText)
-
-                                            // Reset sliders to 0 when preset changes
-                                            for (var i = 0; i < eqRepeater.count; i++) {
-                                                var item = eqRepeater.itemAt(i)
-                                                if (item && item.children.length > 1) {
-                                                    var slider = item.children[1]
-                                                    if (slider) {
-                                                        slider.value = 0
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
                                 }
 
-                                GridLayout {
-                                    Layout.fillWidth: true
-                                    columns: 10
-                                    rowSpacing: 10
-                                    columnSpacing: 8
-
-                                    Repeater {
-                                        id: eqRepeater
-                                        model: 10
-
-                                        ColumnLayout {
-                                            Layout.fillWidth: true
-                                            spacing: 5
-
-                                            Label {
-                                                Layout.alignment: Qt.AlignHCenter
-                                                text: ["32", "64", "125", "250", "500", "1k", "2k", "4k", "8k", "16k"][index]
-                                                font.pixelSize: 10
-                                                color: root.textSecondaryColor
-                                            }
-
-                                            Slider {
-                                                id: eqSlider
-                                                Layout.preferredHeight: 150
-                                                Layout.alignment: Qt.AlignHCenter
-                                                orientation: Qt.Vertical
-                                                from: 12
-                                                to: -12
-                                                value: 0
-                                                stepSize: 0.5
-
-                                                onValueChanged: {
-                                                    if (equalizerCheck.checked) {
-                                                        audioController.setEqualizerBand(index, -value)
-                                                    }
-                                                }
-
-                                                background: Rectangle {
-                                                    x: eqSlider.leftPadding + eqSlider.availableWidth / 2 - width / 2
-                                                    y: eqSlider.topPadding
-                                                    implicitWidth: 4
-                                                    implicitHeight: 150
-                                                    width: implicitWidth
-                                                    height: eqSlider.availableHeight
-                                                    radius: 2
-                                                    color: root.surfaceLightColor
-
-                                                    Rectangle {
-                                                        y: eqSlider.visualPosition * parent.height
-                                                        width: parent.width
-                                                        height: parent.height - y
-                                                        color: root.primaryColor
-                                                        radius: 2
-                                                    }
-                                                }
-
-                                                handle: Rectangle {
-                                                    x: eqSlider.leftPadding + eqSlider.availableWidth / 2 - width / 2
-                                                    y: eqSlider.topPadding + eqSlider.visualPosition * (eqSlider.availableHeight - height)
-                                                    implicitWidth: 16
-                                                    implicitHeight: 16
-                                                    radius: 8
-                                                    color: eqSlider.pressed ? root.primaryColor : root.textColor
-                                                    border.color: root.primaryColor
-                                                    border.width: 2
-                                                }
-                                            }
-
-                                            Label {
-                                                Layout.alignment: Qt.AlignHCenter
-                                                text: (-eqSlider.value).toFixed(1)
-                                                font.pixelSize: 9
-                                                color: root.textSecondaryColor
-                                            }
-                                        }
-                                    }
+                                Label {
+                                    text: fadeInCheck.checked ?
+                                        qsTr("✓ Audio will fade in smoothly when you press play") :
+                                        qsTr("Audio will start at full volume immediately")
+                                    font.pixelSize: 10
+                                    color: fadeInCheck.checked ? root.primaryColor : root.textSecondaryColor
                                 }
                             }
                         }
 
-                        // Reverb
-                        GroupBox {
-                            Layout.fillWidth: true
-                            Layout.margins: 20
+                        // Reset Button
+                        Button {
+                            Layout.alignment: Qt.AlignCenter
+                            Layout.topMargin: 10
+                            Layout.bottomMargin: 20
+                            text: qsTr("🔄 Reset All Effects")
+                            implicitWidth: 200
+                            implicitHeight: 45
+
+                            onClicked: {
+                                gainSlider.value = 1.0
+                                balanceSlider.value = 0.0
+                                speedSlider.value = 1.0
+                                fadeInCheck.checked = false
+                                audioController.resetEffects()
+                            }
 
                             background: Rectangle {
-                                color: root.surfaceColor
-                                radius: 12
-                                border.color: root.surfaceLightColor
-                                border.width: 1
+                                radius: 22
+                                color: parent.pressed ? root.accentColor : root.surfaceLightColor
+                                border.color: root.accentColor
+                                border.width: 2
                             }
 
-                            label: CheckBox {
-                                id: reverbCheck
-                                text: qsTr("Reverb Effect")
-                                checked: false
-                                font.pixelSize: 18
+                            contentItem: Text {
+                                text: parent.text
+                                font.pixelSize: 14
                                 font.bold: true
-
-                                contentItem: Text {
-                                    text: reverbCheck.text
-                                    font: reverbCheck.font
-                                    color: root.textColor
-                                    leftPadding: reverbCheck.indicator.width + 10
-                                    verticalAlignment: Text.AlignVCenter
-                                }
-
-                                onCheckedChanged: {
-                                    if (checked) {
-                                        audioController.addReverbEffect()
-                                    } else {
-                                        audioController.removeEffect(1)
-                                    }
-                                }
-                            }
-
-                            ColumnLayout {
-                                anchors.fill: parent
-                                spacing: 20
-                                enabled: reverbCheck.checked
-                                opacity: reverbCheck.checked ? 1.0 : 0.5
-
-                                RowLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 15
-
-                                    Label {
-                                        text: qsTr("Room Size:")
-                                        color: root.textColor
-                                        Layout.preferredWidth: 100
-                                    }
-
-                                    Slider {
-                                        id: roomSizeSlider
-                                        Layout.fillWidth: true
-                                        from: 0
-                                        to: 1
-                                        value: 0.5
-
-                                        onValueChanged: {
-                                            if (reverbCheck.checked) {
-                                                audioController.setReverbRoomSize(value)
-                                            }
-                                        }
-
-                                        background: Rectangle {
-                                            x: roomSizeSlider.leftPadding
-                                            y: roomSizeSlider.topPadding + roomSizeSlider.availableHeight / 2 - height / 2
-                                            implicitWidth: 200
-                                            implicitHeight: 4
-                                            width: roomSizeSlider.availableWidth
-                                            height: implicitHeight
-                                            radius: 2
-                                            color: root.surfaceLightColor
-
-                                            Rectangle {
-                                                width: roomSizeSlider.visualPosition * parent.width
-                                                height: parent.height
-                                                color: root.primaryColor
-                                                radius: 2
-                                            }
-                                        }
-
-                                        handle: Rectangle {
-                                            x: roomSizeSlider.leftPadding + roomSizeSlider.visualPosition * (roomSizeSlider.availableWidth - width)
-                                            y: roomSizeSlider.topPadding + roomSizeSlider.availableHeight / 2 - height / 2
-                                            implicitWidth: 16
-                                            implicitHeight: 16
-                                            radius: 8
-                                            color: roomSizeSlider.pressed ? root.primaryColor : root.textColor
-                                            border.color: root.primaryColor
-                                            border.width: 2
-                                        }
-                                    }
-
-                                    Label {
-                                        text: roomSizeSlider.value.toFixed(2)
-                                        color: root.textSecondaryColor
-                                        Layout.preferredWidth: 50
-                                    }
-                                }
-
-                                RowLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 15
-
-                                    Label {
-                                        text: qsTr("Damping:")
-                                        color: root.textColor
-                                        Layout.preferredWidth: 100
-                                    }
-
-                                    Slider {
-                                        id: dampingSlider
-                                        Layout.fillWidth: true
-                                        from: 0
-                                        to: 1
-                                        value: 0.5
-
-                                        onValueChanged: {
-                                            if (reverbCheck.checked) {
-                                                audioController.setReverbDamping(value)
-                                            }
-                                        }
-
-                                        background: Rectangle {
-                                            x: dampingSlider.leftPadding
-                                            y: dampingSlider.topPadding + dampingSlider.availableHeight / 2 - height / 2
-                                            implicitWidth: 200
-                                            implicitHeight: 4
-                                            width: dampingSlider.availableWidth
-                                            height: implicitHeight
-                                            radius: 2
-                                            color: root.surfaceLightColor
-
-                                            Rectangle {
-                                                width: dampingSlider.visualPosition * parent.width
-                                                height: parent.height
-                                                color: root.primaryColor
-                                                radius: 2
-                                            }
-                                        }
-
-                                        handle: Rectangle {
-                                            x: dampingSlider.leftPadding + dampingSlider.visualPosition * (dampingSlider.availableWidth - width)
-                                            y: dampingSlider.topPadding + dampingSlider.availableHeight / 2 - height / 2
-                                            implicitWidth: 16
-                                            implicitHeight: 16
-                                            radius: 8
-                                            color: dampingSlider.pressed ? root.primaryColor : root.textColor
-                                            border.color: root.primaryColor
-                                            border.width: 2
-                                        }
-                                    }
-
-                                    Label {
-                                        text: dampingSlider.value.toFixed(2)
-                                        color: root.textSecondaryColor
-                                        Layout.preferredWidth: 50
-                                    }
-                                }
-
-                                RowLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 15
-
-                                    Label {
-                                        text: qsTr("Wet/Dry Mix:")
-                                        color: root.textColor
-                                        Layout.preferredWidth: 100
-                                    }
-
-                                    Slider {
-                                        id: wetDrySlider
-                                        Layout.fillWidth: true
-                                        from: 0
-                                        to: 1
-                                        value: 0.3
-
-                                        onValueChanged: {
-                                            if (reverbCheck.checked) {
-                                                audioController.setReverbMix(value)
-                                            }
-                                        }
-
-                                        background: Rectangle {
-                                            x: wetDrySlider.leftPadding
-                                            y: wetDrySlider.topPadding + wetDrySlider.availableHeight / 2 - height / 2
-                                            implicitWidth: 200
-                                            implicitHeight: 4
-                                            width: wetDrySlider.availableWidth
-                                            height: implicitHeight
-                                            radius: 2
-                                            color: root.surfaceLightColor
-
-                                            Rectangle {
-                                                width: wetDrySlider.visualPosition * parent.width
-                                                height: parent.height
-                                                color: root.primaryColor
-                                                radius: 2
-                                            }
-                                        }
-
-                                        handle: Rectangle {
-                                            x: wetDrySlider.leftPadding + wetDrySlider.visualPosition * (wetDrySlider.availableWidth - width)
-                                            y: wetDrySlider.topPadding + wetDrySlider.availableHeight / 2 - height / 2
-                                            implicitWidth: 16
-                                            implicitHeight: 16
-                                            radius: 8
-                                            color: wetDrySlider.pressed ? root.primaryColor : root.textColor
-                                            border.color: root.primaryColor
-                                            border.width: 2
-                                        }
-                                    }
-
-                                    Label {
-                                        text: wetDrySlider.value.toFixed(2)
-                                        color: root.textSecondaryColor
-                                        Layout.preferredWidth: 50
-                                    }
-                                }
-                            }
-                        }
-
-                        // Bass Boost
-                        GroupBox {
-                            Layout.fillWidth: true
-                            Layout.margins: 20
-
-                            background: Rectangle {
-                                color: root.surfaceColor
-                                radius: 12
-                                border.color: root.surfaceLightColor
-                                border.width: 1
-                            }
-
-                            label: CheckBox {
-                                id: bassBoostCheck
-                                text: qsTr("Bass Boost")
-                                checked: false
-                                font.pixelSize: 18
-                                font.bold: true
-
-                                contentItem: Text {
-                                    text: bassBoostCheck.text
-                                    font: bassBoostCheck.font
-                                    color: root.textColor
-                                    leftPadding: bassBoostCheck.indicator.width + 10
-                                    verticalAlignment: Text.AlignVCenter
-                                }
-
-                                onCheckedChanged: {
-                                    if (checked) {
-                                        audioController.addBassBoostEffect()
-                                    } else {
-                                        audioController.removeEffect(2)
-                                    }
-                                }
-                            }
-
-                            ColumnLayout {
-                                anchors.fill: parent
-                                spacing: 20
-                                enabled: bassBoostCheck.checked
-                                opacity: bassBoostCheck.checked ? 1.0 : 0.5
-
-                                RowLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 15
-
-                                    Label {
-                                        text: qsTr("Boost Level:")
-                                        color: root.textColor
-                                        Layout.preferredWidth: 100
-                                    }
-
-                                    Slider {
-                                        id: bassLevelSlider
-                                        Layout.fillWidth: true
-                                        from: 0.5
-                                        to: 2.0
-                                        value: 1.5
-
-                                        onValueChanged: {
-                                            if (bassBoostCheck.checked) {
-                                                audioController.setBassBoostLevel(value)
-                                            }
-                                        }
-
-                                        background: Rectangle {
-                                            x: bassLevelSlider.leftPadding
-                                            y: bassLevelSlider.topPadding + bassLevelSlider.availableHeight / 2 - height / 2
-                                            implicitWidth: 200
-                                            implicitHeight: 4
-                                            width: bassLevelSlider.availableWidth
-                                            height: implicitHeight
-                                            radius: 2
-                                            color: root.surfaceLightColor
-
-                                            Rectangle {
-                                                width: bassLevelSlider.visualPosition * parent.width
-                                                height: parent.height
-                                                color: root.primaryColor
-                                                radius: 2
-                                            }
-                                        }
-
-                                        handle: Rectangle {
-                                            x: bassLevelSlider.leftPadding + bassLevelSlider.visualPosition * (bassLevelSlider.availableWidth - width)
-                                            y: bassLevelSlider.topPadding + bassLevelSlider.availableHeight / 2 - height / 2
-                                            implicitWidth: 16
-                                            implicitHeight: 16
-                                            radius: 8
-                                            color: bassLevelSlider.pressed ? root.primaryColor : root.textColor
-                                            border.color: root.primaryColor
-                                            border.width: 2
-                                        }
-                                    }
-
-                                    Label {
-                                        text: bassLevelSlider.value.toFixed(2) + "x"
-                                        color: root.textSecondaryColor
-                                        Layout.preferredWidth: 50
-                                    }
-                                }
+                                color: root.textColor
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
                             }
                         }
 
@@ -1280,6 +1385,7 @@ ApplicationWindow {
                     }
                 }
             }
+
         }
 
         // ========== BOTTOM PLAYER CONTROLS ==========
