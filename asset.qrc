@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>../videoplayback.m4a</file>
+        <file>main.qml</file>
+    </qresource>
+</RCC>
