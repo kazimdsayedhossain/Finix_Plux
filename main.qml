@@ -444,7 +444,7 @@ ApplicationWindow {
                                             spacing: 15
 
                                             Label {
-                                                text: qsTr("Gain:")
+
                                                 font.pixelSize: 14
                                                 color: root.textColor
                                                 Layout.preferredWidth: 60
@@ -626,7 +626,7 @@ ApplicationWindow {
                                             spacing: 15
 
                                             Label {
-                                                text: qsTr("Speed:")
+
                                                 font.pixelSize: 14
                                                 color: root.textColor
                                                 Layout.preferredWidth: 60
@@ -686,6 +686,7 @@ ApplicationWindow {
                                             Layout.fillWidth: true
                                             Layout.topMargin: 10
                                             spacing: 10
+                                            anchors.horizontalCenter: parent.horizontalCenter
 
                                             Repeater {
                                                 model: [0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
@@ -724,58 +725,79 @@ ApplicationWindow {
                                 }
 
                                 // Fade In Effect - FIXED: Proper text alignment
+
                                 EffectCard {
                                     Layout.fillWidth: true
                                     title: qsTr("🎼 Fade In Effect")
                                     description: qsTr("Gradually increase volume when playback starts")
 
-                                    ColumnLayout {
+                                    Column {
+                                        anchors.horizontalCenter: parent.horizontalCenter
+                                        anchors.top: parent.top
+                                        anchors.topMargin: 15
+                                        spacing: 20
                                         width: parent.width
-                                        spacing: 10
 
-                                        CheckBox {
-                                            id: fadeInCheck
-                                            Layout.alignment: Qt.AlignHCenter
-                                            text: qsTr("Enable Fade In (1 second)")
-                                            checked: audioController.fadeInEnabled
-                                            onCheckedChanged: audioController.setFadeInEnabled(checked)
+                                        // Custom Checkbox
+                                        Rectangle {
+                                            id: checkBox
+                                            width: 24
+                                            height: 24
+                                            radius: 6
+                                            anchors.horizontalCenter: parent.horizontalCenter
+                                            color: fadeInEnabled ? root.primaryColor : root.surfaceLightColor
+                                            border.color: fadeInEnabled ? root.primaryColor : root.textSecondaryColor
+                                            border.width: 2
 
-                                            contentItem: Text {
-                                                text: fadeInCheck.text
-                                                font.pixelSize: 14
-                                                color: root.textColor
-                                                leftPadding: fadeInCheck.indicator.width + 12
-                                                verticalAlignment: Text.AlignVCenter
+                                            property bool fadeInEnabled: audioController.fadeInEnabled
+
+                                            Behavior on color { ColorAnimation { duration: 200 } }
+                                            Behavior on border.color { ColorAnimation { duration: 200 } }
+
+                                            Text {
+                                                text: "✓"
+                                                font.pixelSize: 16
+                                                font.bold: true
+                                                color: "white"
+                                                anchors.centerIn: parent
+                                                opacity: checkBox.fadeInEnabled ? 1 : 0
+                                                Behavior on opacity { NumberAnimation { duration: 200 } }
                                             }
 
-                                            indicator: Rectangle {
-                                                implicitWidth: 20
-                                                implicitHeight: 20
-                                                x: fadeInCheck.leftPadding
-                                                y: parent.height / 2 - height / 2
-                                                radius: 4
-                                                color: fadeInCheck.checked ? root.primaryColor : "transparent"
-                                                border.color: fadeInCheck.checked ? root.primaryColor : root.textSecondaryColor
-                                                border.width: 2
-
-                                                Text {
-                                                    text: "✓"
-                                                    font.pixelSize: 12
-                                                    color: "white"
-                                                    anchors.centerIn: parent
-                                                    visible: fadeInCheck.checked
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                anchors.margins: -10
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: {
+                                                    audioController.setFadeInEnabled(!checkBox.fadeInEnabled)
                                                 }
                                             }
                                         }
 
-                                        Label {
-                                            Layout.fillWidth: true
-                                            text: fadeInCheck.checked ?
+                                        // Label text
+                                        Text {
+                                            text: qsTr("Enable Fade In (1 second)")
+                                            font.pixelSize: 14
+                                            font.bold: true
+                                            color: root.textColor
+                                            anchors.horizontalCenter: parent.horizontalCenter
+                                        }
+
+                                        // Description with spacing
+                                        Item {
+                                            width: parent.width
+                                            height: 1
+                                        }
+
+                                        Text {
+                                            width: parent.width
+                                            text: checkBox.fadeInEnabled ?
                                                 qsTr("✓ Audio will fade in smoothly when you press play") :
                                                 qsTr("Audio will start at full volume immediately")
                                             font.pixelSize: 12
-                                            color: fadeInCheck.checked ? root.primaryColor : root.textSecondaryColor
+                                            color: checkBox.fadeInEnabled ? root.primaryColor : root.textSecondaryColor
                                             horizontalAlignment: Text.AlignHCenter
+                                            wrapMode: Text.WordWrap
                                         }
                                     }
                                 }
@@ -818,6 +840,7 @@ ApplicationWindow {
                         }
                     }
                 }
+
 
                 // ==================== LIBRARY PAGE ====================
                 Component {
@@ -1043,7 +1066,18 @@ ApplicationWindow {
                     }
                 }
 
+
+
+
+
+
+
+
+
+
+
                 // ==================== SETTINGS PAGE ====================
+
                 Component {
                     id: settingsPage
 
@@ -1062,112 +1096,486 @@ ApplicationWindow {
                             ColumnLayout {
                                 id: settingsContent
                                 width: parent.width
-                                spacing: 25
+                                spacing: 20
 
+                                // Header
                                 Label {
                                     text: qsTr("Settings & About")
                                     font.pixelSize: 32
                                     font.bold: true
                                     color: root.textColor
+                                    Layout.bottomMargin: 10
                                 }
 
-                                SettingsCard {
+                                // Application Info Card
+                                Rectangle {
                                     Layout.fillWidth: true
-                                    title: qsTr("📱 Application Info")
-
-                                    GridLayout {
-                                        Layout.fillWidth: true
-                                        columns: 2
-                                        rowSpacing: 12
-                                        columnSpacing: 20
-
-                                        SettingItem { label: qsTr("Name:"); value: qsTr("Finix Player") }
-                                        SettingItem { label: qsTr("Version:"); value: qsTr("1.0.0") }
-                                        SettingItem { label: qsTr("Framework:"); value: qsTr("Qt 6.10 + C++17") }
-                                        SettingItem { label: qsTr("Build:"); value: qsTr("Release") }
-                                    }
-                                }
-
-                                SettingsCard {
-                                    Layout.fillWidth: true
-                                    title: qsTr("✨ Features")
+                                    implicitHeight: appInfoColumn.implicitHeight + 40
+                                    color: root.surfaceColor
+                                    radius: 12
 
                                     ColumnLayout {
-                                        Layout.fillWidth: true
-                                        spacing: 8
+                                        id: appInfoColumn
+                                        anchors {
+                                            left: parent.left
+                                            right: parent.right
+                                            top: parent.top
+                                            margins: 20
+                                        }
+                                        spacing: 15
 
-                                        FeatureItem { text: qsTr("Local audio file playback (MP3, FLAC, OGG, WAV, M4A, AAC)") }
-                                        FeatureItem { text: qsTr("YouTube audio streaming with search") }
-                                        FeatureItem { text: qsTr("Real-time audio effects (Gain, Balance, Speed, Fade In)") }
-                                        FeatureItem { text: qsTr("Music library with search and metadata") }
-                                        FeatureItem { text: qsTr("Modern user interface with dark theme") }
+                                        Label {
+                                            text: qsTr("📱 Application Info")
+                                            font.pixelSize: 18
+                                            font.bold: true
+                                            color: root.textColor
+                                        }
+
+                                        // Name
+                                        RowLayout {
+                                            spacing: 15
+                                            Label {
+                                                text: qsTr("Name:")
+                                                font.pixelSize: 14
+                                                color: root.textSecondaryColor
+                                                Layout.minimumWidth: 100
+                                            }
+                                            Label {
+                                                text: qsTr("Finix Player")
+                                                font.pixelSize: 14
+                                                font.bold: true
+                                                color: root.textColor
+                                            }
+                                        }
+
+                                        // Version
+                                        RowLayout {
+                                            spacing: 15
+                                            Label {
+                                                text: qsTr("Version:")
+                                                font.pixelSize: 14
+                                                color: root.textSecondaryColor
+                                                Layout.minimumWidth: 100
+                                            }
+                                            Label {
+                                                text: qsTr("1.0.0")
+                                                font.pixelSize: 14
+                                                font.bold: true
+                                                color: root.textColor
+                                            }
+                                        }
+
+                                        // Framework
+                                        RowLayout {
+                                            spacing: 15
+                                            Label {
+                                                text: qsTr("Framework:")
+                                                font.pixelSize: 14
+                                                color: root.textSecondaryColor
+                                                Layout.minimumWidth: 100
+                                            }
+                                            Label {
+                                                text: qsTr("Qt 6.10 + C++17")
+                                                font.pixelSize: 14
+                                                font.bold: true
+                                                color: root.textColor
+                                            }
+                                        }
+
+                                        // Build
+                                        RowLayout {
+                                            spacing: 15
+                                            Label {
+                                                text: qsTr("Build:")
+                                                font.pixelSize: 14
+                                                color: root.textSecondaryColor
+                                                Layout.minimumWidth: 100
+                                            }
+                                            Label {
+                                                text: qsTr("Release")
+                                                font.pixelSize: 14
+                                                font.bold: true
+                                                color: root.textColor
+                                            }
+                                        }
                                     }
                                 }
 
-                                SettingsCard {
+                                // Developer Info Card
+                                Rectangle {
                                     Layout.fillWidth: true
-                                    title: qsTr("⌨️ Keyboard Shortcuts")
-
-                                    GridLayout {
-                                        Layout.fillWidth: true
-                                        columns: 2
-                                        rowSpacing: 12
-                                        columnSpacing: 20
-
-                                        ShortcutItem { shortcut: qsTr("Space"); action: qsTr("Play/Pause") }
-                                        ShortcutItem { shortcut: qsTr("Ctrl+O"); action: qsTr("Open File") }
-                                        ShortcutItem { shortcut: qsTr("Ctrl+L"); action: qsTr("Open Library") }
-                                        ShortcutItem { shortcut: qsTr("↑/↓"); action: qsTr("Volume Up/Down") }
-                                    }
-                                }
-
-                                SettingsCard {
-                                    Layout.fillWidth: true
-                                    title: qsTr("ℹ️ About")
+                                    implicitHeight: developerColumn.implicitHeight + 40
+                                    color: root.surfaceColor
+                                    radius: 12
 
                                     ColumnLayout {
-                                        Layout.fillWidth: true
+                                        id: developerColumn
+                                        anchors {
+                                            left: parent.left
+                                            right: parent.right
+                                            top: parent.top
+                                            margins: 20
+                                        }
+                                        spacing: 15
+
+                                        Label {
+                                            text: qsTr("👨‍💻 Developer Info")
+                                            font.pixelSize: 18
+                                            font.bold: true
+                                            color: root.textColor
+                                        }
+
+                                        // Developer
+                                        RowLayout {
+                                            spacing: 15
+                                            Label {
+                                                text: qsTr("Developer:")
+                                                font.pixelSize: 14
+                                                color: root.textSecondaryColor
+                                                Layout.minimumWidth: 100
+                                            }
+                                            Label {
+                                                text: qsTr("Kazi MD. Sayed Hossain")
+                                                font.pixelSize: 14
+                                                font.bold: true
+                                                color: root.textColor
+                                            }
+                                        }
+
+                                        // Email
+                                        RowLayout {
+                                            spacing: 15
+                                            Label {
+                                                text: qsTr("Email:")
+                                                font.pixelSize: 14
+                                                color: root.textSecondaryColor
+                                                Layout.minimumWidth: 100
+                                            }
+                                            Label {
+                                                text: qsTr("kazimdsayedhossain@outlook.com")
+                                                font.pixelSize: 13
+                                                font.bold: true
+                                                color: root.primaryColor
+                                            }
+                                        }
+
+                                        // Location
+                                        RowLayout {
+                                            spacing: 15
+                                            Label {
+                                                text: qsTr("Location:")
+                                                font.pixelSize: 14
+                                                color: root.textSecondaryColor
+                                                Layout.minimumWidth: 100
+                                            }
+                                            Label {
+                                                text: qsTr("Khulna, Bangladesh")
+                                                font.pixelSize: 14
+                                                font.bold: true
+                                                color: root.textColor
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // Features Card
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    implicitHeight: featuresColumn.implicitHeight + 40
+                                    color: root.surfaceColor
+                                    radius: 12
+
+                                    ColumnLayout {
+                                        id: featuresColumn
+                                        anchors {
+                                            left: parent.left
+                                            right: parent.right
+                                            top: parent.top
+                                            margins: 20
+                                        }
                                         spacing: 12
 
                                         Label {
-                                            Layout.fillWidth: true
-                                            text: qsTr("Finix Player is a modern, feature-rich music player built with Qt 6 and C++.")
-                                            font.pixelSize: 14
-                                            color: root.textSecondaryColor
-                                            wrapMode: Text.WordWrap
+                                            text: qsTr("✨ Features")
+                                            font.pixelSize: 18
+                                            font.bold: true
+                                            color: root.textColor
+                                            Layout.bottomMargin: 5
                                         }
 
-                                        Label {
-                                            Layout.fillWidth: true
-                                            text: qsTr("The application demonstrates advanced C++ programming concepts and modern Qt development practices.")
-                                            font.pixelSize: 14
-                                            color: root.textSecondaryColor
-                                            wrapMode: Text.WordWrap
+                                        // Feature 1
+                                        RowLayout {
+                                            spacing: 10
+                                            Label {
+                                                text: "•"
+                                                font.pixelSize: 18
+                                                color: root.primaryColor
+                                            }
+                                            Label {
+                                                text: qsTr("Local audio file playback (MP3, FLAC, OGG, WAV, M4A, AAC)")
+                                                font.pixelSize: 13
+                                                color: root.textSecondaryColor
+                                                wrapMode: Text.WordWrap
+                                                Layout.fillWidth: true
+                                            }
                                         }
 
-                                        Label {
-                                            Layout.fillWidth: true
-                                            text: qsTr("Developed with Qt Multimedia for high-quality audio playback and real-time effects processing.")
-                                            font.pixelSize: 14
-                                            color: root.textSecondaryColor
-                                            wrapMode: Text.WordWrap
+                                        // Feature 2
+                                        RowLayout {
+                                            spacing: 10
+                                            Label {
+                                                text: "•"
+                                                font.pixelSize: 18
+                                                color: root.primaryColor
+                                            }
+                                            Label {
+                                                text: qsTr("YouTube audio streaming with search")
+                                                font.pixelSize: 13
+                                                color: root.textSecondaryColor
+                                                wrapMode: Text.WordWrap
+                                                Layout.fillWidth: true
+                                            }
                                         }
 
-                                        Label {
-                                            text: qsTr("© 2024 Finix Player. All rights reserved.")
-                                            font.pixelSize: 12
-                                            color: root.textSecondaryColor
-                                            Layout.topMargin: 10
+                                        // Feature 3
+                                        RowLayout {
+                                            spacing: 10
+                                            Label {
+                                                text: "•"
+                                                font.pixelSize: 18
+                                                color: root.primaryColor
+                                            }
+                                            Label {
+                                                text: qsTr("Real-time audio effects (Gain, Balance, Speed, Fade In)")
+                                                font.pixelSize: 13
+                                                color: root.textSecondaryColor
+                                                wrapMode: Text.WordWrap
+                                                Layout.fillWidth: true
+                                            }
+                                        }
+
+                                        // Feature 4
+                                        RowLayout {
+                                            spacing: 10
+                                            Label {
+                                                text: "•"
+                                                font.pixelSize: 18
+                                                color: root.primaryColor
+                                            }
+                                            Label {
+                                                text: qsTr("Music library with search and metadata")
+                                                font.pixelSize: 13
+                                                color: root.textSecondaryColor
+                                                wrapMode: Text.WordWrap
+                                                Layout.fillWidth: true
+                                            }
+                                        }
+
+                                        // Feature 5
+                                        RowLayout {
+                                            spacing: 10
+                                            Label {
+                                                text: "•"
+                                                font.pixelSize: 18
+                                                color: root.primaryColor
+                                            }
+                                            Label {
+                                                text: qsTr("Modern user interface with dark theme")
+                                                font.pixelSize: 13
+                                                color: root.textSecondaryColor
+                                                wrapMode: Text.WordWrap
+                                                Layout.fillWidth: true
+                                            }
                                         }
                                     }
                                 }
 
-                                Item { Layout.preferredHeight: 20 }
+                                // Keyboard Shortcuts Card
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    implicitHeight: shortcutsColumn.implicitHeight + 40
+                                    color: root.surfaceColor
+                                    radius: 12
+
+                                    ColumnLayout {
+                                        id: shortcutsColumn
+                                        anchors {
+                                            left: parent.left
+                                            right: parent.right
+                                            top: parent.top
+                                            margins: 20
+                                        }
+                                        spacing: 15
+
+                                        Label {
+                                            text: qsTr("⌨️ Keyboard Shortcuts")
+                                            font.pixelSize: 18
+                                            font.bold: true
+                                            color: root.textColor
+                                        }
+
+                                        // Space
+                                        RowLayout {
+                                            spacing: 15
+                                            Label {
+                                                text: qsTr("Space")
+                                                font.pixelSize: 14
+                                                font.bold: true
+                                                color: root.textSecondaryColor
+                                                Layout.minimumWidth: 80
+                                            }
+                                            Label {
+                                                text: qsTr("Play/Pause")
+                                                font.pixelSize: 14
+                                                color: root.textColor
+                                            }
+                                        }
+
+                                        // Ctrl+O
+                                        RowLayout {
+                                            spacing: 15
+                                            Label {
+                                                text: qsTr("Ctrl+O")
+                                                font.pixelSize: 14
+                                                font.bold: true
+                                                color: root.textSecondaryColor
+                                                Layout.minimumWidth: 80
+                                            }
+                                            Label {
+                                                text: qsTr("Open File")
+                                                font.pixelSize: 14
+                                                color: root.textColor
+                                            }
+                                        }
+
+                                        // Ctrl+L
+                                        RowLayout {
+                                            spacing: 15
+                                            Label {
+                                                text: qsTr("Ctrl+L")
+                                                font.pixelSize: 14
+                                                font.bold: true
+                                                color: root.textSecondaryColor
+                                                Layout.minimumWidth: 80
+                                            }
+                                            Label {
+                                                text: qsTr("Open Library")
+                                                font.pixelSize: 14
+                                                color: root.textColor
+                                            }
+                                        }
+
+                                        // Arrows
+                                        RowLayout {
+                                            spacing: 15
+                                            Label {
+                                                text: qsTr("↑/↓")
+                                                font.pixelSize: 14
+                                                font.bold: true
+                                                color: root.textSecondaryColor
+                                                Layout.minimumWidth: 80
+                                            }
+                                            Label {
+                                                text: qsTr("Volume Up/Down")
+                                                font.pixelSize: 14
+                                                color: root.textColor
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // About Card
+                                Rectangle {
+                                    Layout.fillWidth: true
+                                    implicitHeight: aboutColumn.implicitHeight + 40
+                                    color: root.surfaceColor
+                                    radius: 12
+
+                                    ColumnLayout {
+                                        id: aboutColumn
+                                        anchors {
+                                            left: parent.left
+                                            right: parent.right
+                                            top: parent.top
+                                            margins: 20
+                                        }
+                                        spacing: 15
+
+                                        Label {
+                                            text: qsTr("ℹ️ About")
+                                            font.pixelSize: 18
+                                            font.bold: true
+                                            color: root.textColor
+                                        }
+
+                                        Label {
+                                            text: qsTr("Finix Player is a modern, feature-rich music player built with Qt 6 and C++.")
+                                            font.pixelSize: 13
+                                            color: root.textSecondaryColor
+                                            wrapMode: Text.WordWrap
+                                            Layout.fillWidth: true
+                                            lineHeight: 1.4
+                                        }
+
+                                        Label {
+                                            text: qsTr("The application demonstrates advanced C++ programming concepts and modern Qt development practices.")
+                                            font.pixelSize: 13
+                                            color: root.textSecondaryColor
+                                            wrapMode: Text.WordWrap
+                                            Layout.fillWidth: true
+                                            lineHeight: 1.4
+                                        }
+
+                                        Label {
+                                            text: qsTr("Developed with Qt Multimedia for high-quality audio playback and real-time effects processing.")
+                                            font.pixelSize: 13
+                                            color: root.textSecondaryColor
+                                            wrapMode: Text.WordWrap
+                                            Layout.fillWidth: true
+                                            lineHeight: 1.4
+                                        }
+
+                                        Item { height: 10 }
+
+                                        Label {
+                                            text: qsTr("©2025 Finix Player. All rights reserved.")
+                                            font.pixelSize: 11
+                                            color: root.textSecondaryColor
+                                            Layout.alignment: Qt.AlignHCenter
+                                        }
+                                    }
+                                }
+
+                                // Bottom spacing
+                                Item {
+                                    Layout.preferredHeight: 30
+                                }
                             }
                         }
                     }
                 }
+
             }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
             // ==================== PLAYBACK CONTROLS ====================
             Rectangle {
