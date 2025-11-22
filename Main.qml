@@ -4,6 +4,7 @@ import QtQuick.Layouts 1.15
 import Qt.labs.lottieqt 1.0
 import com.finix.audioplayer 1.0
 import Qt.labs.platform 1.1
+import Qt5Compat.GraphicalEffects
 
 ApplicationWindow {
     id: root
@@ -295,7 +296,7 @@ ApplicationWindow {
                                                 fillMode: Image.PreserveAspectCrop
                                                 visible: source != ""
                                                 layer.enabled: true
-                                                layer.effect: OpacityMasks {
+                                                layer.effect: OpacityMask {
                                                     maskSource: Rectangle {
                                                         width: albumArt.width
                                                         height: albumArt.height
@@ -1579,7 +1580,7 @@ ApplicationWindow {
                 Layout.preferredHeight: 120
                 color: root.surfaceColor
                 layer.enabled: true
-                layer.effect: DropShadows {
+                layer.effect: DropShadow {
                     horizontalOffset: 0
                     verticalOffset: -3
                     radius: 10
@@ -2085,6 +2086,7 @@ ApplicationWindow {
 
     // ========== CUSTOM COMPONENTS ==========
 
+
         component NavigationButton: Button {
             property string icon: ""
             property bool active: false
@@ -2227,56 +2229,63 @@ ApplicationWindow {
             }
         }
 
-        component OOPFeatureDetail: ColumnLayout {
+        component OOPFeatureDetail: Item {
             property string number: ""
             property string title: ""
             property string description: ""
 
-            spacing: 5
+            implicitHeight: contentLayout.implicitHeight
+            implicitWidth: contentLayout.implicitWidth
 
-            Rectangle {
-                Layout.fillWidth: true
-                height: 1
-                color: root.surfaceLightColor
-            }
-
-            RowLayout {
-                Layout.fillWidth: true
-                Layout.topMargin: 10
-                spacing: 15
+            ColumnLayout {
+                id: contentLayout
+                anchors.fill: parent
+                spacing: 5
 
                 Rectangle {
-                    implicitWidth: 50
-                    implicitHeight: 50
-                    radius: 25
-                    color: root.primaryColor
-
-                    Label {
-                        anchors.centerIn: parent
-                        text: number
-                        font.pixelSize: 14
-                        font.bold: true
-                        color: "white"
-                    }
+                    Layout.fillWidth: true
+                    height: 1
+                    color: root.surfaceLightColor
                 }
 
-                ColumnLayout {
+                RowLayout {
                     Layout.fillWidth: true
-                    spacing: 5
+                    Layout.topMargin: 10
+                    spacing: 15
 
-                    Label {
-                        text: title
-                        font.pixelSize: 14
-                        font.bold: true
-                        color: root.textColor
+                    Rectangle {
+                        Layout.preferredWidth: 50
+                        Layout.preferredHeight: 50
+                        radius: 25
+                        color: root.primaryColor
+
+                        Label {
+                            anchors.centerIn: parent
+                            text: number
+                            font.pixelSize: 14
+                            font.bold: true
+                            color: "white"
+                        }
                     }
 
-                    Label {
-                        text: description
-                        font.pixelSize: 12
-                        color: root.textSecondaryColor
-                        wrapMode: Text.WordWrap
+                    ColumnLayout {
                         Layout.fillWidth: true
+                        spacing: 5
+
+                        Label {
+                            text: title
+                            font.pixelSize: 14
+                            font.bold: true
+                            color: root.textColor
+                        }
+
+                        Label {
+                            text: description
+                            font.pixelSize: 12
+                            color: root.textSecondaryColor
+                            wrapMode: Text.WordWrap
+                            Layout.fillWidth: true
+                        }
                     }
                 }
             }
@@ -2291,56 +2300,42 @@ ApplicationWindow {
             return minutes + ":" + (seconds < 10 ? "0" : "") + seconds
         }
 
-    // ========== DROP SHADOW EFFECT ==========
-    component DropShadows: Item {
-        property int horizontalOffset: 0
-        property int verticalOffset: 0
-        property int radius: 0
-        property int samples: 0
-        property color color: "transparent"
-    }
+        // ========== CONNECTIONS ==========
+        Connections {
+            target: musicLibrary
 
-    // ========== OPACITY MASK EFFECT ==========
-    component OpacityMasks: Item {
-        property Item maskSource
-    }
+            function onScanStarted() {
+                console.log("Scan started")
+            }
 
-    // ========== CONNECTIONS ==========
-    Connections {
-        target: musicLibrary
+            function onScanCompleted(count) {
+                console.log("Scan completed. Found", count, "tracks")
+                scanProgressDialog.close()
+            }
 
-        function onScanStarted() {
-            console.log("Scan started")
+            function onScanProgress(current, total) {
+                console.log("Scanning:", current, "/", total)
+            }
         }
 
-        function onScanCompleted(count) {
-            console.log("Scan completed. Found", count, "tracks")
-            scanProgressDialog.close()
-        }
+        // ========== COMPONENT COMPLETION ==========
+        Component.onCompleted: {
+            console.log("Finix Player initialized with all OOP features")
+            console.log("- Classes & Objects ✓")
+            console.log("- Constructors & Destructors ✓")
+            console.log("- Function & Operator Overloading ✓")
+            console.log("- Friend Functions & Classes ✓")
+            console.log("- Static Members ✓")
+            console.log("- Inheritance & Polymorphism ✓")
+            console.log("- Virtual Functions & Abstract Classes ✓")
+            console.log("- Templates (Function & Class) ✓")
+            console.log("- Exception Handling ✓")
+            console.log("- STL Containers ✓")
+            console.log("All 15 OOP features implemented!")
 
-        function onScanProgress(current, total) {
-            console.log("Scanning:", current, "/", total)
-        }
-    }
-
-    // ========== COMPONENT COMPLETION ==========
-    Component.onCompleted: {
-        console.log("Finix Player initialized with all OOP features")
-        console.log("- Classes & Objects ✓")
-        console.log("- Constructors & Destructors ✓")
-        console.log("- Function & Operator Overloading ✓")
-        console.log("- Friend Functions & Classes ✓")
-        console.log("- Static Members ✓")
-        console.log("- Inheritance & Polymorphism ✓")
-        console.log("- Virtual Functions & Abstract Classes ✓")
-        console.log("- Templates (Function & Class) ✓")
-        console.log("- Exception Handling ✓")
-        console.log("- STL Containers ✓")
-        console.log("All 15 OOP features implemented!")
-
-        // Try to load saved library
-        if (musicLibrary.loadFromFile("library.json")) {
-            console.log("Loaded saved library")
+            // Try to load saved library
+            if (musicLibrary.loadFromFile("library.json")) {
+                console.log("Loaded saved library")
+            }
         }
     }
-}
