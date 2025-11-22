@@ -56,6 +56,8 @@ set(PROJECT_SOURCES
     AudioUtils.h
     CircularBuffer.h
     Cache.h
+    PlaylistManager.h
+    PlaylistManager.cpp
 )
 
 # ----------------------------------------------------------------------------
@@ -90,6 +92,7 @@ qt_add_qml_module(${PROJECT_NAME}
     RESOURCE_PREFIX "/qt/qml"
 )
 
+#SOURCES PlaylistManager.h
 # ----------------------------------------------------------------------------
 # Link Libraries
 # ----------------------------------------------------------------------------

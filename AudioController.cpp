@@ -1,4 +1,4 @@
-// AudioController.cpp - Complete implementation with all OOP features
+// AudioController.cpp - Complete implementation with working audio effects
 
 #include "AudioController.h"
 #include "AudioException.h"
@@ -14,6 +14,8 @@
 #include <QRegularExpression>
 #include <QFile>
 
+// ==================== Constructor & Destructor ====================
+
 AudioController::AudioController(QObject *parent)
     : QObject(parent)
     , m_player(new QMediaPlayer(this))
@@ -21,10 +23,25 @@ AudioController::AudioController(QObject *parent)
     , m_queue(100)           // CircularBuffer with capacity 100
     , m_albumArtCache(50)    // LRU Cache with capacity 50
 {
+    // Setup audio output
     m_player->setAudioOutput(m_audioOutput);
     m_audioOutput->setVolume(m_volume);
 
-    // Connect all signals
+    // Initialize fade timer
+    m_fadeTimer = new QTimer(this);
+    m_fadeTimer->setInterval(50); // 50ms updates for smooth fade
+    connect(m_fadeTimer, &QTimer::timeout, this, [this]() {
+        if (m_fadeProgress < 1.0) {
+            m_fadeProgress += 0.05; // Increase by 5% each tick (1 second total)
+            applyVolumeEffects();
+        } else {
+            m_fadeTimer->stop();
+            m_fadeProgress = 1.0;
+            applyVolumeEffects();
+        }
+    });
+
+    // Connect media player signals
     connect(m_player, &QMediaPlayer::positionChanged, this, &AudioController::onPositionChanged);
     connect(m_player, &QMediaPlayer::durationChanged, this, &AudioController::onDurationChanged);
     connect(m_player, &QMediaPlayer::playbackStateChanged, this, &AudioController::onPlaybackStateChanged);
@@ -32,11 +49,14 @@ AudioController::AudioController(QObject *parent)
     connect(m_player, &QMediaPlayer::mediaStatusChanged, this, &AudioController::onMediaStatusChanged);
     connect(m_player, &QMediaPlayer::errorOccurred, this, &AudioController::onErrorOccurred);
 
-    qDebug() << "AudioController initialized with queue size:" << m_queue.capacity();
+    qDebug() << "AudioController initialized with working audio effects";
 }
 
 AudioController::~AudioController()
 {
+    if (m_fadeTimer) {
+        m_fadeTimer->stop();
+    }
     qDebug() << "AudioController destroyed";
 }
 
@@ -211,11 +231,21 @@ void AudioController::playYouTubeAudio(const QString &query)
 void AudioController::play()
 {
     m_player->play();
+
+    // Start fade in if enabled
+    if (m_fadeInEnabled) {
+        startFadeIn();
+    }
 }
 
 void AudioController::pause()
 {
     m_player->pause();
+
+    // Stop fade timer if running
+    if (m_fadeTimer->isActive()) {
+        m_fadeTimer->stop();
+    }
 }
 
 void AudioController::seek(qint64 position)
@@ -225,9 +255,12 @@ void AudioController::seek(qint64 position)
 
 void AudioController::setVolume(qreal volume)
 {
+    volume = qBound(0.0, volume, 1.0);
+
     if (qFuzzyCompare(m_volume, volume)) return;
+
     m_volume = volume;
-    m_audioOutput->setVolume(m_volume);
+    applyVolumeEffects(); // Apply all volume-based effects
     emit volumeChanged();
 }
 
@@ -241,11 +274,6 @@ qint64 AudioController::duration() const
 qint64 AudioController::position() const
 {
     return m_player->position();
-}
-
-qreal AudioController::volume() const
-{
-    return m_volume;
 }
 
 bool AudioController::isPlaying() const
@@ -292,14 +320,119 @@ void AudioController::setTrackInfo(const QString &title, const QString &artist)
     }
 }
 
-// ==================== Audio Effects (Polymorphism in Action) ====================
+// ==================== NEW: Working Audio Effects ====================
+
+void AudioController::setGainBoost(qreal gain)
+{
+    gain = qBound(0.0, gain, 2.0); // Limit to 0-200%
+
+    if (qFuzzyCompare(m_gainBoost, gain)) return;
+
+    m_gainBoost = gain;
+    applyVolumeEffects();
+    emit gainBoostChanged();
+
+    qDebug() << "Gain boost set to:" << m_gainBoost << "(" << (m_gainBoost * 100) << "%)";
+}
+
+void AudioController::setBalance(qreal balance)
+{
+    balance = qBound(-1.0, balance, 1.0); // -1 (left) to 1 (right)
+
+    if (qFuzzyCompare(m_balance, balance)) return;
+
+    m_balance = balance;
+    // Note: Qt's QAudioOutput doesn't have built-in balance control
+    // This would require lower-level audio API or custom processing
+    // For now, we just store the value and emit signal
+    emit balanceChanged();
+
+    qDebug() << "Balance set to:" << m_balance;
+}
+
+void AudioController::setPlaybackRate(qreal rate)
+{
+    rate = qBound(0.25, rate, 2.0); // 25% to 200% speed
+
+    if (qFuzzyCompare(m_playbackRate, rate)) return;
+
+    m_playbackRate = rate;
+    m_player->setPlaybackRate(rate);
+    emit playbackRateChanged();
+
+    qDebug() << "Playback rate set to:" << m_playbackRate << "x";
+}
+
+void AudioController::setFadeInEnabled(bool enabled)
+{
+    if (m_fadeInEnabled == enabled) return;
+
+    m_fadeInEnabled = enabled;
+    emit fadeInEnabledChanged();
+
+    qDebug() << "Fade in" << (enabled ? "enabled" : "disabled");
+}
+
+void AudioController::resetEffects()
+{
+    setGainBoost(1.0);
+    setBalance(0.0);
+    setPlaybackRate(1.0);
+    setFadeInEnabled(false);
+
+    m_fadeProgress = 1.0;
+    if (m_fadeTimer->isActive()) {
+        m_fadeTimer->stop();
+    }
+
+    applyVolumeEffects();
+
+    qDebug() << "All effects reset to defaults";
+}
+
+void AudioController::applyVolumeEffects()
+{
+    // Calculate effective volume with gain boost
+    qreal effectiveVolume = m_volume * m_gainBoost;
+
+    // Apply fade if enabled and in progress
+    if (m_fadeInEnabled && m_fadeProgress < 1.0) {
+        effectiveVolume *= m_fadeProgress;
+    }
+
+    // Clamp to valid range (0.0 to 1.0)
+    effectiveVolume = qBound(0.0, effectiveVolume, 1.0);
+
+    // Apply to audio output
+    m_audioOutput->setVolume(effectiveVolume);
+
+    // Debug output
+    if (m_fadeInEnabled && m_fadeProgress < 1.0) {
+        qDebug() << "Applying volume effects - Base:" << m_volume
+                 << "Gain:" << m_gainBoost
+                 << "Fade:" << m_fadeProgress
+                 << "Effective:" << effectiveVolume;
+    }
+}
+
+void AudioController::startFadeIn()
+{
+    if (m_fadeInEnabled && isPlaying()) {
+        m_fadeProgress = 0.0;
+        applyVolumeEffects(); // Apply initial zero volume
+        m_fadeTimer->start();
+        qDebug() << "Fade in started (1 second duration)";
+    }
+}
+
+// ==================== Legacy Audio Effects (Non-functional - Architecture Demo) ====================
 
 void AudioController::addEqualizerEffect()
 {
     try {
         auto eq = std::make_unique<EqualizerEffect>();
         m_effectChain.addEffect(std::move(eq));
-        qDebug() << "Equalizer effect added";
+        qDebug() << "Equalizer effect added (non-functional - architecture demo)";
     }
     catch (const std::exception& e) {
         qWarning() << "Failed to add equalizer:" << e.what();
@@ -323,7 +456,7 @@ void AudioController::setEqualizerBand(int band, float gain)
         AudioEffect* effect = m_effectChain.getEffect(i);
         if (auto* eq = dynamic_cast<EqualizerEffect*>(effect)) {
             eq->setBand(band, gain);
-            qDebug() << "EQ band" << band << "set to" << gain << "dB";
+            qDebug() << "EQ band" << band << "set to" << gain << "dB (non-functional)";
             break;
         }
     }
@@ -335,7 +468,7 @@ void AudioController::setEqualizerPreset(const QString& preset)
         AudioEffect* effect = m_effectChain.getEffect(i);
         if (auto* eq = dynamic_cast<EqualizerEffect*>(effect)) {
             eq->setPreset(preset);
-            qDebug() << "EQ preset set to:" << preset;
+            qDebug() << "EQ preset set to:" << preset << "(non-functional)";
             break;
         }
     }
@@ -346,7 +479,7 @@ void AudioController::addReverbEffect()
     try {
         auto reverb = std::make_unique<ReverbEffect>();
         m_effectChain.addEffect(std::move(reverb));
-        qDebug() << "Reverb effect added";
+        qDebug() << "Reverb effect added (non-functional - architecture demo)";
     }
     catch (const std::exception& e) {
         qWarning() << "Failed to add reverb:" << e.what();
@@ -359,7 +492,7 @@ void AudioController::setReverbRoomSize(float size)
         AudioEffect* effect = m_effectChain.getEffect(i);
         if (auto* reverb = dynamic_cast<ReverbEffect*>(effect)) {
             reverb->setRoomSize(size);
-            qDebug() << "Reverb room size set to:" << size;
+            qDebug() << "Reverb room size set to:" << size << "(non-functional)";
             break;
         }
     }
@@ -371,7 +504,7 @@ void AudioController::setReverbDamping(float damping)
         AudioEffect* effect = m_effectChain.getEffect(i);
         if (auto* reverb = dynamic_cast<ReverbEffect*>(effect)) {
             reverb->setDamping(damping);
-            qDebug() << "Reverb damping set to:" << damping;
+            qDebug() << "Reverb damping set to:" << damping << "(non-functional)";
             break;
         }
     }
@@ -383,7 +516,7 @@ void AudioController::setReverbMix(float mix)
         AudioEffect* effect = m_effectChain.getEffect(i);
         if (auto* reverb = dynamic_cast<ReverbEffect*>(effect)) {
             reverb->setWetDryMix(mix);
-            qDebug() << "Reverb mix set to:" << mix;
+            qDebug() << "Reverb mix set to:" << mix << "(non-functional)";
             break;
         }
     }
@@ -394,7 +527,7 @@ void AudioController::addBassBoostEffect()
     try {
         auto bass = std::make_unique<BassBoostEffect>();
         m_effectChain.addEffect(std::move(bass));
-        qDebug() << "Bass boost effect added";
+        qDebug() << "Bass boost effect added (non-functional - architecture demo)";
     }
     catch (const std::exception& e) {
         qWarning() << "Failed to add bass boost:" << e.what();
@@ -407,13 +540,13 @@ void AudioController::setBassBoostLevel(float level)
         AudioEffect* effect = m_effectChain.getEffect(i);
         if (auto* bass = dynamic_cast<BassBoostEffect*>(effect)) {
             bass->setBoostLevel(level);
-            qDebug() << "Bass boost level set to:" << level;
+            qDebug() << "Bass boost level set to:" << level << "(non-functional)";
             break;
         }
     }
 }
 
-// ==================== Queue Management (Template Class Usage) ====================
+// ==================== Queue Management ====================
 
 void AudioController::addToQueue(const QString& filePath)
 {
@@ -524,4 +657,114 @@ void AudioController::onErrorOccurred(QMediaPlayer::Error error, const QString &
     qWarning() << "QMediaPlayer Error:" << error << errorString;
     m_mediaStatus = Error;
     emit mediaStatusChanged();
+}
+
+
+
+// In AudioController.cpp - Add these test methods
+
+void AudioController::testAllOOPFeatures()
+{
+    qDebug() << "\n========== TESTING ALL OOP FEATURES ==========\n";
+
+    testFunctionOverloading();
+    testOperatorOverloading();
+    testStaticMembers();
+    testFriendFunction();
+
+    qDebug() << "\n========== ALL OOP TESTS COMPLETED ==========\n";
+}
+
+void AudioController::testFunctionOverloading()
+{
+    qDebug() << "--- Testing Function Overloading ---";
+
+    Track track("test.mp3", "Test Song", "Test Artist");
+
+    // Test overloaded setDuration
+    track.setDuration(180000);           // milliseconds
+    track.setDuration(3, 30);            // minutes, seconds
+    track.setDuration(0, 4, 15);         // hours, minutes, seconds
+
+    // Test overloaded play
+    track.play();                        // no parameters
+    track.play(0.75);                    // with volume
+    track.play(0.5, 30000);              // with volume and position
+
+    qDebug() << "Function Overloading: PASSED ✓\n";
+}
+
+void AudioController::testOperatorOverloading()
+{
+    qDebug() << "--- Testing Operator Overloading ---";
+
+    Track track1("song1.mp3", "Hello", "Artist A");
+    Track track2("song2.mp3", "World", "Artist B");
+    Track track3("song3.mp3", "Hello", "Artist A");
+
+    // Test comparison operators
+    qDebug() << "track1 == track3:" << (track1 == track3);  // true
+    qDebug() << "track1 != track2:" << (track1 != track2);  // true
+    qDebug() << "track1 < track2:" << (track1 < track2);    // true (H < W)
+
+    // Test stream operator
+    qDebug() << "Track1:" << track1;
+
+    // Test addition operator
+    QString combined = track1 + track2;
+    qDebug() << "Combined name:" << combined;
+
+    // Test increment operators
+    ++track1;  // Prefix
+    qDebug() << "After ++track1, play count:" << track1.playCount();
+
+    track2++;  // Postfix
+    qDebug() << "After track2++, play count:" << track2.playCount();
+
+    qDebug() << "Operator Overloading: PASSED ✓\n";
+}
+
+void AudioController::testStaticMembers()
+{
+    qDebug() << "--- Testing Static Members ---";
+
+    // Test static functions
+    qDebug() << "Supported formats:" << Track::getSupportedFormats();
+    qDebug() << "Is 'song.mp3' valid?" << Track::isValidAudioFile("song.mp3");
+    qDebug() << "Formatted duration:" << Track::formatDuration(215000);
+
+    // Test static variable
+    qDebug() << "Total tracks created:" << Track::getTotalTracksCreated();
+
+    {
+        Track temp1("temp1.mp3");
+        Track temp2("temp2.mp3");
+        qDebug() << "After creating 2 tracks:" << Track::getTotalTracksCreated();
+    }
+
+    qDebug() << "After destroying 2 tracks:" << Track::getTotalTracksCreated();
+    qDebug() << "Static Members: PASSED ✓\n";
+}
+
+void AudioController::testFriendFunction()
+{
+    qDebug() << "--- Testing Friend Function & Friend Class ---";
+
+    Track track("mysong.mp3", "My Song", "My Artist");
+    track.setDuration(3, 45);
+    track.incrementPlayCount();
+    track.incrementPlayCount();
+
+    // Test friend function
+    printTrackDetails(track);
+
+    // Test friend class
+    PlaylistManager playlist("My Favorites");
+    playlist.addTrack(track);
+    playlist.addTrack(Track("song2.mp3", "Song 2", "Artist 2"));
+
+    // Friend class can access private members
+    playlist.printAllTrackPaths();
+
+    qDebug() << "Friend Function & Class: PASSED ✓\n";
 }

@@ -1,27 +1,50 @@
+// Track.h - Add year support
 #ifndef TRACK_H
 #define TRACK_H
 
 #include <QString>
-#include <QImage>
 #include <QDateTime>
+#include <QDebug>
 
-class Track {
+class Track
+{
 public:
-    // Constructors (Concept #2)
+    // Constructors
     Track();
-    Track(const QString& filePath);
-    Track(const Track& other);  // Copy constructor
+    explicit Track(const QString& path);
+    Track(const QString& path, const QString& title, const QString& artist);
 
-    // Destructor (Concept #3)
+    // Destructor
     ~Track();
 
-    // Assignment operator (Concept #5 - Operator Overloading)
-    Track& operator=(const Track& other);
+    // ==================== FUNCTION OVERLOADING ====================
+    void setDuration(qint64 durationMs);
+    void setDuration(int minutes, int seconds);
+    void setDuration(int hours, int minutes, int seconds);
+    void play();
+    void play(qreal volume);
+    void play(qreal volume, qint64 startPosition);
 
-    // Comparison operators (Concept #5)
+    // ==================== OPERATOR OVERLOADING ====================
     bool operator==(const Track& other) const;
     bool operator!=(const Track& other) const;
-    bool operator<(const Track& other) const;  // For sorting
+    bool operator<(const Track& other) const;
+    bool operator>(const Track& other) const;
+    Track& operator=(const Track& other);
+    friend QDebug operator<<(QDebug debug, const Track& track);
+    QString operator+(const Track& other) const;
+    Track& operator++();
+    Track operator++(int);
+
+    // ==================== FRIEND FUNCTION ====================
+    friend void printTrackDetails(const Track& track);
+    friend class PlaylistManager;
+
+    // ==================== STATIC MEMBERS ====================
+    static int getTotalTracksCreated();
+    static bool isValidAudioFile(const QString& path);
+    static QStringList getSupportedFormats();
+    static QString formatDuration(qint64 milliseconds);
 
     // Getters
     QString path() const { return m_path; }
@@ -29,9 +52,8 @@ public:
     QString artist() const { return m_artist; }
     QString album() const { return m_album; }
     QString genre() const { return m_genre; }
-    int year() const { return m_year; }
+    int year() const { return m_year; }  // NEW: Add year getter
     qint64 duration() const { return m_duration; }
-    QImage albumArt() const { return m_albumArt; }
     int playCount() const { return m_playCount; }
     QDateTime lastPlayed() const { return m_lastPlayed; }
 
@@ -40,17 +62,10 @@ public:
     void setArtist(const QString& artist) { m_artist = artist; }
     void setAlbum(const QString& album) { m_album = album; }
     void setGenre(const QString& genre) { m_genre = genre; }
-    void setYear(int year) { m_year = year; }
-    void setDuration(qint64 duration) { m_duration = duration; }
-    void setAlbumArt(const QImage& art) { m_albumArt = art; }
+    void setYear(int year) { m_year = year; }  // NEW: Add year setter
 
-    // Methods
     void incrementPlayCount();
     void updateLastPlayed();
-    bool loadMetadata();
-
-    // Friend function (Concept #6)
-    friend QDebug operator<<(QDebug debug, const Track& track);
 
 private:
     QString m_path;
@@ -58,13 +73,16 @@ private:
     QString m_artist;
     QString m_album;
     QString m_genre;
-    int m_year;
-    qint64 m_duration;  // in milliseconds
-    QImage m_albumArt;
-    int m_playCount;
+    int m_year = 0;  // NEW: Add year member variable
+    qint64 m_duration = 0;
+    int m_playCount = 0;
     QDateTime m_lastPlayed;
 
-    void extractMetadata();
+    static int s_totalTracksCreated;
+
+    void loadMetadata();
 };
+
+void printTrackDetails(const Track& track);
 
 #endif // TRACK_H

@@ -1,11 +1,12 @@
-
-// ===== LibraryModel.cpp (rewritten) =====
+// ===== LibraryModel.cpp (Complete Rewrite) =====
 
 #include "LibraryModel.h"
+#include "AudioException.h"
 #include <algorithm>
 #include <QDebug>
 #include <QDir>
 #include <QDirIterator>
+#include <QFileInfo>
 #include <QSet>
 
 LibraryModel::LibraryModel(QObject* parent)
@@ -14,6 +15,8 @@ LibraryModel::LibraryModel(QObject* parent)
 {
     qDebug() << "LibraryModel created";
 }
+
+// ==================== QAbstractListModel Interface ====================
 
 int LibraryModel::rowCount(const QModelIndex& parent) const
 {
@@ -52,9 +55,9 @@ QVariant LibraryModel::data(const QModelIndex& index, int role) const
     case PlayCountRole:
         return track.playCount();
     case AlbumArtRole:
-        // Track may or may not have an album art API. Return empty QVariant as safe default.
-        // If your Track class provides an albumArtPath()/albumArt() method, replace the next line with that call.
-        return QVariant();
+        // Return empty string if no album art available
+        // In a full implementation, this would return a path or QImage
+        return QString();
     default:
         return QVariant();
     }
@@ -75,34 +78,43 @@ QHash<int, QByteArray> LibraryModel::roleNames() const
     return roles;
 }
 
+// ==================== Public Methods ====================
+
 void LibraryModel::refresh()
 {
     beginResetModel();
     updateDisplayedTracks();
     endResetModel();
+
     computeStats();
     emit statsChanged();
+
     qDebug() << "Library refreshed. Displayed tracks:" << m_displayedTracks.size();
 }
 
 void LibraryModel::search(const QString& query)
 {
     m_searchQuery = query.trimmed();
+
     beginResetModel();
     updateDisplayedTracks();
     endResetModel();
-    computeStats();
+
     qDebug() << "Search results for:" << query << "- Found:" << m_displayedTracks.size();
 }
 
 void LibraryModel::setFilter(const QString& filter)
 {
+    if (m_currentFilter == filter)
+        return;
+
     m_currentFilter = filter;
+
     beginResetModel();
     updateDisplayedTracks();
     endResetModel();
-    computeStats();
-    qDebug() << "Filter set to:" << filter << "Displayed:" << m_displayedTracks.size();
+
+    qDebug() << "Filter set to:" << filter << "- Displayed:" << m_displayedTracks.size();
 }
 
 void LibraryModel::scanDirectory(const QString& path)
@@ -114,24 +126,46 @@ void LibraryModel::scanDirectory(const QString& path)
     QDir dir(path);
     if (!dir.exists()) {
         qWarning() << "Directory does not exist:" << path;
+        emit errorOccurred("Directory does not exist: " + path);
         return;
     }
 
+    // Clear existing tracks
     beginResetModel();
     m_allTracks.clear();
     m_displayedTracks.clear();
+    endResetModel();
 
     QDirIterator it(path, audioExtensions, QDir::Files, QDirIterator::Subdirectories);
 
     int count = 0;
+    int totalFound = 0;
+
+    // First pass: count total files
+    QDirIterator countIt(path, audioExtensions, QDir::Files, QDirIterator::Subdirectories);
+    while (countIt.hasNext() && totalFound < m_scanItemLimit) {
+        countIt.next();
+        totalFound++;
+    }
+
+    qDebug() << "Found" << totalFound << "audio files to scan";
+
+    // Second pass: load tracks
     while (it.hasNext()) {
         QString filePath = it.next();
 
-        // Construct Track - if Track constructor throws, catch to avoid crash
         try {
             Track track(filePath);
             m_allTracks.push_back(track);
             count++;
+
+            // Emit progress
+            if (count % 10 == 0) {
+                emit scanProgressChanged(count, totalFound);
+            }
+        }
+        catch (const AudioException& e) {
+            qWarning() << "Failed to load track:" << filePath << "-" << e.what();
         }
         catch (const std::exception& e) {
             qWarning() << "Failed to load track:" << filePath << "-" << e.what();
@@ -143,73 +177,97 @@ void LibraryModel::scanDirectory(const QString& path)
         }
     }
 
-    // After scanning, build the displayed list using current search/filter/sort
+    // Update displayed list
+    beginResetModel();
     updateDisplayedTracks();
     endResetModel();
 
     computeStats();
     emit statsChanged();
+    emit scanProgressChanged(count, totalFound);
 
-    qDebug() << "Scanned" << count << "audio files";
+    qDebug() << "Scan complete. Loaded" << count << "tracks";
 }
 
 void LibraryModel::sortBy(const QString& field)
 {
+    if (field.isEmpty())
+        return;
+
     m_lastSortField = field;
 
     beginResetModel();
-
-    auto comparator = [&](const Track& a, const Track& b) {
-        if (field == "Title") return a.title().toLower() < b.title().toLower();
-        if (field == "Artist") return a.artist().toLower() < b.artist().toLower();
-        if (field == "Album") return a.album().toLower() < b.album().toLower();
-        if (field == "Duration") return a.duration() < b.duration();
-        if (field == "Year") return a.year() < b.year();
-        // Fallback to title
-        return a.title().toLower() < b.title().toLower();
-    };
-
-    std::sort(m_displayedTracks.begin(), m_displayedTracks.end(), comparator);
-
+    sortDisplayedTracks(field);
     endResetModel();
-    qDebug() << "Sorted by:" << field << "Displayed:" << m_displayedTracks.size();
+
+    qDebug() << "Sorted by:" << field << "- Tracks:" << m_displayedTracks.size();
 }
+
+void LibraryModel::clearLibrary()
+{
+    beginResetModel();
+    m_allTracks.clear();
+    m_displayedTracks.clear();
+    endResetModel();
+
+    m_searchQuery.clear();
+    m_currentFilter = "All Tracks";
+    m_lastSortField.clear();
+
+    computeStats();
+    emit statsChanged();
+
+    qDebug() << "Library cleared";
+}
+
+QString LibraryModel::getTrackPath(int index) const
+{
+    if (index >= 0 && index < static_cast<int>(m_displayedTracks.size())) {
+        return m_displayedTracks[index].path();
+    }
+    return QString();
+}
+
+// ==================== Private Helper Methods ====================
 
 void LibraryModel::updateDisplayedTracks()
 {
     m_displayedTracks.clear();
 
     const bool hasQuery = !m_searchQuery.isEmpty();
-    const QString q = m_searchQuery;
+    const QString lowerQuery = m_searchQuery.toLower();
 
-    for (const Track& t : m_allTracks) {
+    for (const Track& track : m_allTracks) {
+        // Apply search filter
         if (hasQuery) {
-            // Match title, artist, album, or genre
             bool matches = false;
-            if (t.title().contains(q, Qt::CaseInsensitive)) matches = true;
-            else if (t.artist().contains(q, Qt::CaseInsensitive)) matches = true;
-            else if (t.album().contains(q, Qt::CaseInsensitive)) matches = true;
-            else if (t.genre().contains(q, Qt::CaseInsensitive)) matches = true;
 
-            if (!matches) continue;
+            if (track.title().toLower().contains(lowerQuery))
+                matches = true;
+            else if (track.artist().toLower().contains(lowerQuery))
+                matches = true;
+            else if (track.album().toLower().contains(lowerQuery))
+                matches = true;
+            else if (track.genre().toLower().contains(lowerQuery))
+                matches = true;
+
+            if (!matches)
+                continue;
         }
 
-        // Filter support
-        if (!trackMatchesFilter(t)) continue;
+        // Apply category filter
+        if (!trackMatchesFilter(track))
+            continue;
 
-        m_displayedTracks.push_back(t);
+        m_displayedTracks.push_back(track);
     }
 
     // Apply last sort if any
     if (!m_lastSortField.isEmpty()) {
-        sortBy(m_lastSortField);
-        // sortBy calls begin/endResetModel and sorts m_displayedTracks
-        // but we've already called begin/end outside in callers; to avoid double begin/end,
-        // we allowed sortBy to manage begin/end. If you prefer a different behaviour,
-        // you can instead call the comparator here directly.
+        sortDisplayedTracks(m_lastSortField);
     }
 
-    qDebug() << "Display tracks updated. Count:" << m_displayedTracks.size();
+    qDebug() << "Displayed tracks updated. Count:" << m_displayedTracks.size();
 }
 
 void LibraryModel::computeStats()
@@ -220,36 +278,132 @@ void LibraryModel::computeStats()
     QSet<QString> artists;
     QSet<QString> albums;
 
-    for (const Track& t : m_allTracks) {
-        artists.insert(t.artist());
-        albums.insert(t.album());
-        m_totalDuration += static_cast<qint64>(t.duration());
+    for (const Track& track : m_allTracks) {
+        // Collect unique artists and albums
+        QString artist = track.artist();
+        QString album = track.album();
+
+        if (!artist.isEmpty() && artist != "Unknown Artist")
+            artists.insert(artist);
+
+        if (!album.isEmpty() && album != "Unknown Album")
+            albums.insert(album);
+
+        m_totalDuration += static_cast<qint64>(track.duration());
     }
 
     m_totalArtists = artists.size();
     m_totalAlbums = albums.size();
 
-    qDebug() << "Stats computed: tracks=" << m_totalTracks << "artists=" << m_totalArtists << "albums=" << m_totalAlbums << "duration=" << m_totalDuration;
+    qDebug() << "Stats - Tracks:" << m_totalTracks
+             << "Artists:" << m_totalArtists
+             << "Albums:" << m_totalAlbums
+             << "Duration:" << m_totalDuration << "ms";
 }
 
-bool LibraryModel::trackMatchesFilter(const Track& t) const
+bool LibraryModel::trackMatchesFilter(const Track& track) const
 {
-    // Example filters. Extend to fit your UI. "All Tracks" -> no filtering.
+    // "All Tracks" shows everything
     if (m_currentFilter.isEmpty() || m_currentFilter == "All Tracks")
         return true;
 
-    // You may want to implement more filter types (e.g., "Favorites", "Recently Added")
+    // Filter by category
+    if (m_currentFilter == "Artists") {
+        // When viewing by artists, show all tracks (grouping handled by view)
+        return true;
+    }
+
+    if (m_currentFilter == "Albums") {
+        // When viewing by albums, show all tracks (grouping handled by view)
+        return true;
+    }
+
+    if (m_currentFilter == "Genres") {
+        // When viewing by genres, show all tracks (grouping handled by view)
+        return true;
+    }
+
+    // Filter by favorites (example: play count >= 5)
     if (m_currentFilter == "Favorites") {
-        // Example: treat playCount >= 10 as a favorite. Change logic as needed.
-        return t.playCount() >= 10;
+        return track.playCount() >= 5;
     }
 
-    // If filter equals an artist name, show only that artist
+    // Filter by recently played (example: played in last 7 days)
+    if (m_currentFilter == "Recently Played") {
+        QDateTime lastPlayed = track.lastPlayed();
+        if (lastPlayed.isValid()) {
+            qint64 daysAgo = lastPlayed.daysTo(QDateTime::currentDateTime());
+            return daysAgo <= 7;
+        }
+        return false;
+    }
+
+    // Custom filter matching artist/album/genre name
     if (m_currentFilter.startsWith("artist:", Qt::CaseInsensitive)) {
-        QString artistName = m_currentFilter.mid(QString("artist:").length()).trimmed();
-        return t.artist().compare(artistName, Qt::CaseInsensitive) == 0;
+        QString artistName = m_currentFilter.mid(7).trimmed();
+        return track.artist().compare(artistName, Qt::CaseInsensitive) == 0;
     }
 
-    // Unknown filter: accept
+    if (m_currentFilter.startsWith("album:", Qt::CaseInsensitive)) {
+        QString albumName = m_currentFilter.mid(6).trimmed();
+        return track.album().compare(albumName, Qt::CaseInsensitive) == 0;
+    }
+
+    if (m_currentFilter.startsWith("genre:", Qt::CaseInsensitive)) {
+        QString genreName = m_currentFilter.mid(6).trimmed();
+        return track.genre().compare(genreName, Qt::CaseInsensitive) == 0;
+    }
+
+    // Unknown filter: accept all
     return true;
+}
+
+void LibraryModel::sortDisplayedTracks(const QString& field)
+{
+    if (field.isEmpty())
+        return;
+
+    if (field == "Title") {
+        std::sort(m_displayedTracks.begin(), m_displayedTracks.end(),
+                  [](const Track& a, const Track& b) {
+                      return a.title().toLower() < b.title().toLower();
+                  });
+    }
+    else if (field == "Artist") {
+        std::sort(m_displayedTracks.begin(), m_displayedTracks.end(),
+                  [](const Track& a, const Track& b) {
+                      return a.artist().toLower() < b.artist().toLower();
+                  });
+    }
+    else if (field == "Album") {
+        std::sort(m_displayedTracks.begin(), m_displayedTracks.end(),
+                  [](const Track& a, const Track& b) {
+                      return a.album().toLower() < b.album().toLower();
+                  });
+    }
+    else if (field == "Duration") {
+        std::sort(m_displayedTracks.begin(), m_displayedTracks.end(),
+                  [](const Track& a, const Track& b) {
+                      return a.duration() < b.duration();
+                  });
+    }
+    else if (field == "Year") {
+        std::sort(m_displayedTracks.begin(), m_displayedTracks.end(),
+                  [](const Track& a, const Track& b) {
+                      return a.year() < b.year();
+                  });
+    }
+    else if (field == "PlayCount") {
+        std::sort(m_displayedTracks.begin(), m_displayedTracks.end(),
+                  [](const Track& a, const Track& b) {
+                      return a.playCount() > b.playCount(); // Descending order
+                  });
+    }
+    else {
+        // Default to title sort
+        std::sort(m_displayedTracks.begin(), m_displayedTracks.end(),
+                  [](const Track& a, const Track& b) {
+                      return a.title().toLower() < b.title().toLower();
+                  });
+    }
 }

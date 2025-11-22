@@ -11,11 +11,11 @@
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
-
     app.setWindowIcon(QIcon(":/assests/app_icon.ico"));
 
     // Register C++ types with QML
     qmlRegisterType<AudioController>("com.finix.audioplayer", 1, 0, "AudioController");
+    qmlRegisterType<MusicLibrary>("com.finix.audioplayer", 1, 0, "MusicLibrary");
     qmlRegisterType<LibraryModel>("com.finix.audioplayer", 1, 0, "LibraryModel");
 
     // Register uncreatable types (for property types only)
@@ -26,8 +26,7 @@ int main(int argc, char *argv[])
 
     QQmlApplicationEngine engine;
 
-    // Expose MusicLibrary singleton to QML
-    engine.rootContext()->setContextProperty("musicLibrary", &MusicLibrary::instance());
+     engine.rootContext()->setContextProperty("musicLibrary", &MusicLibrary::instance());
 
     const QUrl url(QStringLiteral("qrc:/qt/qml/FinixPlayer/main.qml"));
     engine.load(url);
