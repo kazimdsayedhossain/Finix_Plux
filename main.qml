@@ -31,31 +31,22 @@ ApplicationWindow {
     // Library Model
     LibraryModel {
         id: libraryModel
-    }
 
-    // Connections for library signals
-    Connections {
-        target: libraryModel
-
-        function onScanProgressChanged(current, total) {
+        onScanProgressChanged: {
             scanProgressDialog.currentProgress = current
             scanProgressDialog.totalProgress = total
 
+            // Close dialog when scan is complete
             if (current >= total && total > 0) {
                 scanCloseTimer.start()
             }
         }
-
-        function onStatsChanged() {
-            console.log("Library stats updated")
-        }
     }
 
-    // Timer to close scan dialog
+    // Timer to close scan dialog when complete
     Timer {
         id: scanCloseTimer
         interval: 500
-        repeat: false
         onTriggered: {
             scanProgressDialog.close()
             libraryModel.refresh()
@@ -83,70 +74,70 @@ ApplicationWindow {
                 anchors.fill: parent
                 spacing: 0
 
-                // Logo
+                // Logo Section
                 Item {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 100
+                    Layout.preferredHeight: 120
 
                     ColumnLayout {
                         anchors.centerIn: parent
-                        spacing: 6
+                        spacing: 8
 
                         Label {
                             Layout.alignment: Qt.AlignHCenter
                             text: "🎵"
-                            font.pixelSize: 12
-                            font.bold: true
+                            font.pixelSize: 32
                         }
 
                         Label {
                             Layout.alignment: Qt.AlignHCenter
                             text: qsTr("Finix Player")
-                            font.pixelSize: 20
+                            font.pixelSize: 22
                             font.bold: true
                             color: root.textColor
                         }
                     }
                 }
 
+                // Separator
                 Rectangle {
                     Layout.fillWidth: true
-                    Layout.leftMargin: 15
-                    Layout.rightMargin: 15
+                    Layout.leftMargin: 20
+                    Layout.rightMargin: 20
                     height: 1
                     color: root.surfaceLightColor
                 }
 
-                // Navigation
+                // Navigation Menu - FIXED: Properly visible menu items
                 ColumnLayout {
                     Layout.fillWidth: true
-                    Layout.topMargin: 15
-                    spacing: 6
+                    Layout.topMargin: 20
+                    spacing: 8
 
-                    NavButton {
+                    SidebarButton {
                         icon: "🏠"
-                        text: qsTr("Home")
+                        label: qsTr("Home")
                         active: stackView.currentItem && stackView.currentItem.objectName === "homePage"
                         onClicked: stackView.replace(homePage)
                     }
 
-                    NavButton {
+                    SidebarButton {
                         icon: "🎚️"
-                        text: qsTr("Audio Effects")
+                        label: qsTr("Audio Effects")
                         active: stackView.currentItem && stackView.currentItem.objectName === "effectsPage"
                         onClicked: stackView.replace(effectsPage)
                     }
 
-                    NavButton {
+                    SidebarButton {
                         icon: "📚"
-                        text: qsTr("Library")
+                        label: qsTr("Library")
                         active: stackView.currentItem && stackView.currentItem.objectName === "libraryPage"
                         onClicked: stackView.replace(libraryPage)
                     }
 
-                    NavButton {
+                    SidebarButton {
                         icon: "⚙️"
-                        text: qsTr("Settings")
+                        label: qsTr("Settings")
                         active: stackView.currentItem && stackView.currentItem.objectName === "settingsPage"
                         onClicked: stackView.replace(settingsPage)
                     }
@@ -154,61 +145,64 @@ ApplicationWindow {
 
                 Item { Layout.fillHeight: true }
 
-                // Stats Section
+                // Library Stats
                 Rectangle {
                     Layout.fillWidth: true
-                    Layout.leftMargin: 15
-                    Layout.rightMargin: 15
-                    Layout.bottomMargin: 15
+                    Layout.leftMargin: 20
+                    Layout.rightMargin: 20
+                    Layout.bottomMargin: 20
                     Layout.preferredHeight: 100
                     color: root.surfaceLightColor
-                    radius: 10
+                    radius: 12
 
                     ColumnLayout {
                         anchors.fill: parent
-                        anchors.margins: 12
+                        anchors.margins: 16
                         spacing: 8
 
                         Label {
                             text: qsTr("📊 Library Stats")
-                            font.pixelSize: 12
+                            font.pixelSize: 14
                             font.bold: true
                             color: root.textColor
                         }
 
                         RowLayout {
                             Layout.fillWidth: true
-                            spacing: 8
+                            spacing: 15
 
-                            Label {
-                                text: qsTr("Tracks:")
-                                font.pixelSize: 10
-                                color: root.textSecondaryColor
+                            ColumnLayout {
+                                spacing: 2
+
+                                Label {
+                                    text: libraryModel.totalTracks
+                                    font.pixelSize: 18
+                                    font.bold: true
+                                    color: root.primaryColor
+                                }
+
+                                Label {
+                                    text: qsTr("Tracks")
+                                    font.pixelSize: 10
+                                    color: root.textSecondaryColor
+                                }
                             }
 
-                            Label {
-                                text: libraryModel.totalTracks
-                                font.pixelSize: 10
-                                font.bold: true
-                                color: root.primaryColor
-                            }
-                        }
+                            ColumnLayout {
+                                spacing: 2
 
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 8
+                                Label {
+                                    text: libraryModel.totalArtists
+                                    font.pixelSize: 18
+                                    font.bold: true
+                                    color: root.accentColor
+                                }
 
-                            Label {
-                                text: qsTr("Artists:")
-                                font.pixelSize: 10
-                                color: root.textSecondaryColor
-                            }
-
-                            Label {
-                                text: libraryModel.totalArtists
-                                font.pixelSize: 10
-                                font.bold: true
-                                color: root.accentColor
+                                Label {
+                                    text: qsTr("Artists")
+                                    font.pixelSize: 10
+                                    color: root.textSecondaryColor
+                                }
                             }
                         }
                     }
@@ -239,7 +233,7 @@ ApplicationWindow {
 
                         Flickable {
                             anchors.fill: parent
-                            anchors.margins: 20
+                            anchors.margins: 30
                             contentHeight: homeContent.height
                             contentWidth: width
                             clip: true
@@ -248,45 +242,52 @@ ApplicationWindow {
                             ColumnLayout {
                                 id: homeContent
                                 width: parent.width
-                                spacing: 20
+                                spacing: 25
 
-                                Label {
-                                    text: qsTr("Welcome to Finix Player")
-                                    font.pixelSize: 28
-                                    font.bold: true
-                                    color: root.textColor
-                                    Layout.topMargin: 10
+                                // Header
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: 8
+
+                                    Label {
+                                        text: qsTr("Welcome to Finix Player")
+                                        font.pixelSize: 32
+                                        font.bold: true
+                                        color: root.textColor
+                                    }
+
+                                    Label {
+                                        text: qsTr("Advanced Music Player with Audio Effects")
+                                        font.pixelSize: 16
+                                        color: root.textSecondaryColor
+                                    }
                                 }
 
-                                Label {
-                                    text: qsTr("Advanced Music Player with Audio Effects")
-                                    font.pixelSize: 14
-                                    color: root.textSecondaryColor
-                                }
-
+                                // Now Playing Card
                                 Rectangle {
                                     Layout.fillWidth: true
-                                    Layout.preferredHeight: 380
+                                    Layout.preferredHeight: 400
                                     color: root.surfaceColor
-                                    radius: 14
+                                    radius: 16
 
                                     ColumnLayout {
                                         anchors.fill: parent
-                                        anchors.margins: 25
-                                        spacing: 18
+                                        anchors.margins: 30
+                                        spacing: 20
 
                                         Label {
                                             text: qsTr("🎵 Now Playing")
-                                            font.pixelSize: 18
+                                            font.pixelSize: 20
                                             font.bold: true
                                             color: root.textColor
                                         }
 
+                                        // Album Art
                                         Rectangle {
                                             Layout.alignment: Qt.AlignHCenter
-                                            width: 200
-                                            height: 200
-                                            radius: 10
+                                            width: 220
+                                            height: 220
+                                            radius: 12
                                             color: root.surfaceLightColor
 
                                             Image {
@@ -295,15 +296,7 @@ ApplicationWindow {
                                                 anchors.margins: 2
                                                 source: audioController.thumbnailUrl || ""
                                                 fillMode: Image.PreserveAspectCrop
-                                                visible: source != ""
-                                                layer.enabled: true
-                                                layer.effect: OpacityMask {
-                                                    maskSource: Rectangle {
-                                                        width: albumArt.width
-                                                        height: albumArt.height
-                                                        radius: 10
-                                                    }
-                                                }
+                                                visible: source !== ""
                                             }
 
                                             Label {
@@ -315,14 +308,15 @@ ApplicationWindow {
                                             }
                                         }
 
+                                        // Track Info
                                         ColumnLayout {
                                             Layout.fillWidth: true
-                                            spacing: 5
+                                            spacing: 6
 
                                             Label {
                                                 Layout.fillWidth: true
                                                 text: audioController.trackTitle || qsTr("No track playing")
-                                                font.pixelSize: 16
+                                                font.pixelSize: 18
                                                 font.bold: true
                                                 color: root.textColor
                                                 elide: Text.ElideRight
@@ -332,7 +326,7 @@ ApplicationWindow {
                                             Label {
                                                 Layout.fillWidth: true
                                                 text: audioController.trackArtist || qsTr("Unknown Artist")
-                                                font.pixelSize: 13
+                                                font.pixelSize: 14
                                                 color: root.textSecondaryColor
                                                 horizontalAlignment: Text.AlignHCenter
                                             }
@@ -340,30 +334,28 @@ ApplicationWindow {
                                     }
                                 }
 
+                                // Quick Actions Grid
                                 GridLayout {
                                     Layout.fillWidth: true
                                     columns: 3
-                                    rowSpacing: 15
-                                    columnSpacing: 15
+                                    rowSpacing: 20
+                                    columnSpacing: 20
 
-                                    QuickActionCard {
-                                        Layout.fillWidth: true
+                                    ActionCard {
                                         icon: "📁"
                                         title: qsTr("Open File")
-                                        description: qsTr("Play local audio")
+                                        description: qsTr("Play local audio files")
                                         onClicked: fileDialog.open()
                                     }
 
-                                    QuickActionCard {
-                                        Layout.fillWidth: true
+                                    ActionCard {
                                         icon: "🎬"
                                         title: qsTr("YouTube")
                                         description: qsTr("Stream from YouTube")
                                         onClicked: youtubeDialog.open()
                                     }
 
-                                    QuickActionCard {
-                                        Layout.fillWidth: true
+                                    ActionCard {
                                         icon: "📚"
                                         title: qsTr("Library")
                                         description: qsTr("Browse your music")
@@ -387,7 +379,7 @@ ApplicationWindow {
 
                         Flickable {
                             anchors.fill: parent
-                            anchors.margins: 20
+                            anchors.margins: 30
                             contentHeight: effectsContent.height
                             contentWidth: width
                             clip: true
@@ -396,85 +388,66 @@ ApplicationWindow {
                             ColumnLayout {
                                 id: effectsContent
                                 width: parent.width
-                                spacing: 15
+                                spacing: 20
 
+                                // Header
                                 Label {
                                     text: qsTr("Audio Effects")
-                                    font.pixelSize: 26
+                                    font.pixelSize: 32
                                     font.bold: true
                                     color: root.textColor
-                                    Layout.topMargin: 5
                                 }
 
+                                // Info Banner
                                 Rectangle {
                                     Layout.fillWidth: true
-                                    Layout.preferredHeight: 60
+                                    Layout.preferredHeight: 70
                                     color: "#1E3A5F"
-                                    radius: 8
+                                    radius: 12
                                     border.color: root.primaryColor
                                     border.width: 1
 
                                     RowLayout {
                                         anchors.fill: parent
-                                        anchors.margins: 15
-                                        spacing: 12
+                                        anchors.margins: 20
+                                        spacing: 15
 
                                         Label {
-                                            text: "✓"
-                                            font.pixelSize: 22
+                                            text: "⚡"
+                                            font.pixelSize: 24
                                             color: root.primaryColor
                                         }
 
                                         Label {
                                             Layout.fillWidth: true
                                             text: qsTr("Real-time audio effects using Qt Multimedia")
-                                            font.pixelSize: 12
+                                            font.pixelSize: 14
                                             color: root.textColor
                                             wrapMode: Text.WordWrap
                                         }
                                     }
                                 }
 
-                                // Gain Boost Effect
-                                Rectangle {
+                                // Gain Control - FIXED: Proper text alignment
+                                EffectCard {
                                     Layout.fillWidth: true
-                                    Layout.preferredHeight: gainBoostContent.height + 40
-                                    color: root.surfaceColor
-                                    radius: 12
-                                    border.color: root.surfaceLightColor
-                                    border.width: 1
+                                    title: qsTr("🔊 Volume Gain")
+                                    description: qsTr("Amplify audio beyond 100% volume")
 
                                     ColumnLayout {
-                                        id: gainBoostContent
-                                        anchors.fill: parent
-                                        anchors.margins: 20
+                                        width: parent.width
                                         spacing: 10
 
-                                        Label {
-                                            Layout.fillWidth: true
-                                            text: qsTr("🔊 Volume Gain Boost")
-                                            font.pixelSize: 16
-                                            font.bold: true
-                                            color: root.textColor
-                                        }
-
-                                        Label {
-                                            Layout.fillWidth: true
-                                            text: qsTr("Amplify audio beyond 100% volume")
-                                            font.pixelSize: 11
-                                            color: root.textSecondaryColor
-                                            wrapMode: Text.WordWrap
-                                        }
-
+                                        // Gain slider with proper alignment
                                         RowLayout {
                                             Layout.fillWidth: true
-                                            Layout.topMargin: 5
-                                            spacing: 12
+                                            spacing: 15
 
                                             Label {
                                                 text: qsTr("Gain:")
+                                                font.pixelSize: 14
                                                 color: root.textColor
-                                                Layout.preferredWidth: 70
+                                                Layout.preferredWidth: 60
                                             }
 
                                             Slider {
@@ -518,68 +491,49 @@ ApplicationWindow {
 
                                             Label {
                                                 text: Math.round(gainSlider.value * 100) + "%"
+                                                font.pixelSize: 14
+                                                font.bold: true
                                                 color: gainSlider.value > 1.0 ? "#FFA500" : root.textColor
-                                                font.bold: gainSlider.value > 1.0
-                                                Layout.preferredWidth: 55
+                                                Layout.preferredWidth: 50
                                                 horizontalAlignment: Text.AlignRight
                                             }
                                         }
 
+                                        // Warning label
                                         Label {
                                             Layout.fillWidth: true
                                             text: gainSlider.value > 1.0 ?
                                                 qsTr("⚠️ Warning: High gain may cause distortion") :
                                                 qsTr("Normal audio level")
-                                            font.pixelSize: 10
+                                            font.pixelSize: 12
                                             color: gainSlider.value > 1.0 ? "#FFA500" : root.textSecondaryColor
                                             horizontalAlignment: Text.AlignHCenter
                                         }
                                     }
                                 }
 
-                                // Balance Control
-                                Rectangle {
+                                // Balance Control - FIXED: Proper text alignment
+                                EffectCard {
                                     Layout.fillWidth: true
-                                    Layout.preferredHeight: balanceContent.height + 40
-                                    color: root.surfaceColor
-                                    radius: 12
-                                    border.color: root.surfaceLightColor
-                                    border.width: 1
+                                    title: qsTr("🎚️ Stereo Balance")
+                                    description: qsTr("Adjust left/right audio balance")
 
                                     ColumnLayout {
-                                        id: balanceContent
-                                        anchors.fill: parent
-                                        anchors.margins: 20
+                                        width: parent.width
                                         spacing: 10
 
-                                        Label {
-                                            Layout.fillWidth: true
-                                            text: qsTr("🎚️ Stereo Balance")
-                                            font.pixelSize: 16
-                                            font.bold: true
-                                            color: root.textColor
-                                        }
-
-                                        Label {
-                                            Layout.fillWidth: true
-                                            text: qsTr("Adjust left/right audio balance")
-                                            font.pixelSize: 11
-                                            color: root.textSecondaryColor
-                                            wrapMode: Text.WordWrap
-                                        }
-
+                                        // Balance slider with proper alignment
                                         RowLayout {
                                             Layout.fillWidth: true
-                                            Layout.topMargin: 5
-                                            spacing: 12
+                                            spacing: 10
 
                                             Label {
                                                 text: qsTr("L")
-                                                color: root.textColor
+                                                font.pixelSize: 14
                                                 font.bold: true
-                                                font.pixelSize: 13
-                                                Layout.preferredWidth: 25
-                                                horizontalAlignment: Text.AlignCenter
+                                                color: root.textColor
+                                                Layout.preferredWidth: 20
+                                                horizontalAlignment: Text.AlignHCenter
                                             }
 
                                             Slider {
@@ -635,68 +589,47 @@ ApplicationWindow {
 
                                             Label {
                                                 text: qsTr("R")
-                                                color: root.textColor
+                                                font.pixelSize: 14
                                                 font.bold: true
-                                                font.pixelSize: 13
-                                                Layout.preferredWidth: 25
-                                                horizontalAlignment: Text.AlignCenter
+                                                color: root.textColor
+                                                Layout.preferredWidth: 20
+                                                horizontalAlignment: Text.AlignHCenter
                                             }
                                         }
 
+                                        // Balance indicator
                                         Label {
                                             Layout.fillWidth: true
-                                            text: balanceSlider.value < -0.1 ?
-                                                qsTr("← Left: " + Math.abs(Math.round(balanceSlider.value * 100)) + "%") :
-                                                balanceSlider.value > 0.1 ?
-                                                qsTr("Right: " + Math.round(balanceSlider.value * 100) + "% →") :
-                                                qsTr("Center (Balanced)")
-                                            font.pixelSize: 10
+                                            text: balanceSlider.value === 0 ? qsTr("Center (Balanced)") :
+                                                  balanceSlider.value < 0 ? qsTr("Left: %1%").arg(Math.abs(Math.round(balanceSlider.value * 100))) :
+                                                  qsTr("Right: %1%").arg(Math.round(balanceSlider.value * 100))
+                                            font.pixelSize: 12
                                             color: root.textSecondaryColor
                                             horizontalAlignment: Text.AlignHCenter
                                         }
                                     }
                                 }
 
-                                // Playback Speed
-                                Rectangle {
+                                // Playback Speed - FIXED: Proper text alignment
+                                EffectCard {
                                     Layout.fillWidth: true
-                                    Layout.preferredHeight: speedContent.height + 40
-                                    color: root.surfaceColor
-                                    radius: 12
-                                    border.color: root.surfaceLightColor
-                                    border.width: 1
+                                    title: qsTr("⏩ Playback Speed")
+                                    description: qsTr("Change playback speed (affects pitch)")
 
                                     ColumnLayout {
-                                        id: speedContent
-                                        anchors.fill: parent
-                                        anchors.margins: 20
+                                        width: parent.width
                                         spacing: 10
 
-                                        Label {
-                                            Layout.fillWidth: true
-                                            text: qsTr("⏩ Playback Speed")
-                                            font.pixelSize: 16
-                                            font.bold: true
-                                            color: root.textColor
-                                        }
-
-                                        Label {
-                                            Layout.fillWidth: true
-                                            text: qsTr("Change playback speed (affects pitch)")
-                                            font.pixelSize: 11
-                                            color: root.textSecondaryColor
-                                            wrapMode: Text.WordWrap
-                                        }
-
+                                        // Speed slider with proper alignment
                                         RowLayout {
                                             Layout.fillWidth: true
-                                            Layout.topMargin: 5
-                                            spacing: 12
+                                            spacing: 15
 
                                             Label {
                                                 text: qsTr("Speed:")
+                                                font.pixelSize: 14
                                                 color: root.textColor
-                                                Layout.preferredWidth: 70
+                                                Layout.preferredWidth: 60
                                             }
 
                                             Slider {
@@ -740,24 +673,31 @@ ApplicationWindow {
 
                                             Label {
                                                 text: speedSlider.value.toFixed(2) + "x"
+                                                font.pixelSize: 14
+                                                font.bold: true
                                                 color: root.textColor
-                                                Layout.preferredWidth: 55
+                                                Layout.preferredWidth: 50
                                                 horizontalAlignment: Text.AlignRight
                                             }
                                         }
 
-                                        Flow {
+                                        // Speed presets with proper alignment
+                                        RowLayout {
                                             Layout.fillWidth: true
-                                            Layout.topMargin: 5
-                                            spacing: 8
+                                            Layout.topMargin: 10
+                                            spacing: 10
 
                                             Repeater {
                                                 model: [0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
-                                                delegate: Button {
+
+                                                Button {
                                                     text: modelData.toFixed(2) + "x"
                                                     implicitWidth: 70
-                                                    implicitHeight: 30
-                                                    onClicked: speedSlider.value = modelData
+                                                    implicitHeight: 32
+                                                    onClicked: {
+                                                        speedSlider.value = modelData
+                                                        audioController.setPlaybackRate(modelData)
+                                                    }
 
                                                     background: Rectangle {
                                                         radius: 6
@@ -770,10 +710,11 @@ ApplicationWindow {
 
                                                     contentItem: Text {
                                                         text: parent.text
-                                                        color: root.textColor
+                                                        color: Math.abs(speedSlider.value - modelData) < 0.01 ?
+                                                               "white" : root.textColor
                                                         horizontalAlignment: Text.AlignHCenter
                                                         verticalAlignment: Text.AlignVCenter
-                                                        font.pixelSize: 11
+                                                        font.pixelSize: 12
                                                         font.bold: Math.abs(speedSlider.value - modelData) < 0.01
                                                     }
                                                 }
@@ -782,51 +723,48 @@ ApplicationWindow {
                                     }
                                 }
 
-                                // Fade In Effect
-                                Rectangle {
+                                // Fade In Effect - FIXED: Proper text alignment
+                                EffectCard {
                                     Layout.fillWidth: true
-                                    Layout.preferredHeight: fadeContent.height + 40
-                                    color: root.surfaceColor
-                                    radius: 12
-                                    border.color: root.surfaceLightColor
-                                    border.width: 1
+                                    title: qsTr("🎼 Fade In Effect")
+                                    description: qsTr("Gradually increase volume when playback starts")
 
                                     ColumnLayout {
-                                        id: fadeContent
-                                        anchors.fill: parent
-                                        anchors.margins: 20
+                                        width: parent.width
                                         spacing: 10
-
-                                        Label {
-                                            Layout.fillWidth: true
-                                            text: qsTr("🎼 Fade In Effect")
-                                            font.pixelSize: 16
-                                            font.bold: true
-                                            color: root.textColor
-                                        }
-
-                                        Label {
-                                            Layout.fillWidth: true
-                                            text: qsTr("Gradually increase volume when playback starts")
-                                            font.pixelSize: 11
-                                            color: root.textSecondaryColor
-                                            wrapMode: Text.WordWrap
-                                        }
 
                                         CheckBox {
                                             id: fadeInCheck
                                             Layout.alignment: Qt.AlignHCenter
-                                            Layout.topMargin: 5
                                             text: qsTr("Enable Fade In (1 second)")
                                             checked: audioController.fadeInEnabled
                                             onCheckedChanged: audioController.setFadeInEnabled(checked)
 
                                             contentItem: Text {
                                                 text: fadeInCheck.text
-                                                font.pixelSize: 13
+                                                font.pixelSize: 14
                                                 color: root.textColor
-                                                leftPadding: fadeInCheck.indicator.width + 8
+                                                leftPadding: fadeInCheck.indicator.width + 12
                                                 verticalAlignment: Text.AlignVCenter
+                                            }
+
+                                            indicator: Rectangle {
+                                                implicitWidth: 20
+                                                implicitHeight: 20
+                                                x: fadeInCheck.leftPadding
+                                                y: parent.height / 2 - height / 2
+                                                radius: 4
+                                                color: fadeInCheck.checked ? root.primaryColor : "transparent"
+                                                border.color: fadeInCheck.checked ? root.primaryColor : root.textSecondaryColor
+                                                border.width: 2
+
+                                                Text {
+                                                    text: "✓"
+                                                    font.pixelSize: 12
+                                                    color: "white"
+                                                    anchors.centerIn: parent
+                                                    visible: fadeInCheck.checked
+                                                }
                                             }
                                         }
 
@@ -835,7 +773,7 @@ ApplicationWindow {
                                             text: fadeInCheck.checked ?
                                                 qsTr("✓ Audio will fade in smoothly when you press play") :
                                                 qsTr("Audio will start at full volume immediately")
-                                            font.pixelSize: 10
+                                            font.pixelSize: 12
                                             color: fadeInCheck.checked ? root.primaryColor : root.textSecondaryColor
                                             horizontalAlignment: Text.AlignHCenter
                                         }
@@ -845,11 +783,10 @@ ApplicationWindow {
                                 // Reset Button
                                 Button {
                                     Layout.alignment: Qt.AlignCenter
-                                    Layout.topMargin: 15
-                                    Layout.bottomMargin: 10
+                                    Layout.topMargin: 20
                                     text: qsTr("🔄 Reset All Effects")
-                                    implicitWidth: 200
-                                    implicitHeight: 42
+                                    implicitWidth: 220
+                                    implicitHeight: 48
 
                                     onClicked: {
                                         audioController.resetEffects()
@@ -860,7 +797,7 @@ ApplicationWindow {
                                     }
 
                                     background: Rectangle {
-                                        radius: 21
+                                        radius: 24
                                         color: parent.pressed ? root.accentColor : root.surfaceLightColor
                                         border.color: root.accentColor
                                         border.width: 2
@@ -868,7 +805,7 @@ ApplicationWindow {
 
                                     contentItem: Text {
                                         text: parent.text
-                                        font.pixelSize: 13
+                                        font.pixelSize: 14
                                         font.bold: true
                                         color: root.textColor
                                         horizontalAlignment: Text.AlignHCenter
@@ -876,7 +813,7 @@ ApplicationWindow {
                                     }
                                 }
 
-                                Item { Layout.preferredHeight: 15 }
+                                Item { Layout.preferredHeight: 20 }
                             }
                         }
                     }
@@ -892,80 +829,51 @@ ApplicationWindow {
 
                         ColumnLayout {
                             anchors.fill: parent
-                            anchors.margins: 20
-                            spacing: 15
+                            anchors.margins: 30
+                            spacing: 20
 
+                            // Header with Actions
                             RowLayout {
                                 Layout.fillWidth: true
-                                spacing: 15
+                                spacing: 20
 
                                 Label {
                                     text: qsTr("Music Library")
-                                    font.pixelSize: 24
+                                    font.pixelSize: 28
                                     font.bold: true
                                     color: root.textColor
                                 }
 
                                 Item { Layout.fillWidth: true }
 
-                                Button {
+                                ToolButton {
                                     text: qsTr("💾 Save Playlist")
-                                    implicitHeight: 36
                                     enabled: libraryModel.totalTracks > 0
                                     onClicked: savePlaylistDialog.open()
-
-                                    background: Rectangle {
-                                        radius: 7
-                                        color: parent.pressed ? root.accentColor : root.surfaceLightColor
-                                        border.color: root.accentColor
-                                        border.width: 1
-                                    }
-
-                                    contentItem: Text {
-                                        text: parent.text
-                                        color: root.textColor
-                                        horizontalAlignment: Text.AlignHCenter
-                                        verticalAlignment: Text.AlignVCenter
-                                        font.pixelSize: 12
-                                    }
                                 }
 
-                                Button {
+                                ToolButton {
                                     text: qsTr("📂 Add Folder")
-                                    implicitHeight: 36
+                                    primary: true
                                     onClicked: folderDialog.open()
-
-                                    background: Rectangle {
-                                        radius: 7
-                                        color: parent.pressed ? root.primaryColor : root.surfaceLightColor
-                                        border.color: root.primaryColor
-                                        border.width: 1
-                                    }
-
-                                    contentItem: Text {
-                                        text: parent.text
-                                        color: root.textColor
-                                        horizontalAlignment: Text.AlignHCenter
-                                        verticalAlignment: Text.AlignVCenter
-                                        font.pixelSize: 12
-                                    }
                                 }
                             }
 
+                            // Search Bar
                             Rectangle {
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: 45
+                                Layout.preferredHeight: 50
                                 color: root.surfaceColor
-                                radius: 22
+                                radius: 25
 
                                 RowLayout {
                                     anchors.fill: parent
-                                    anchors.margins: 12
-                                    spacing: 8
+                                    anchors.margins: 15
+                                    spacing: 12
 
                                     Label {
                                         text: "🔍"
-                                        font.pixelSize: 16
+                                        font.pixelSize: 18
                                     }
 
                                     TextField {
@@ -973,156 +881,162 @@ ApplicationWindow {
                                         Layout.fillWidth: true
                                         placeholderText: qsTr("Search tracks, artists, albums...")
                                         color: root.textColor
-                                        font.pixelSize: 13
+                                        font.pixelSize: 14
                                         background: Item {}
                                         onTextChanged: libraryModel.search(text)
                                     }
                                 }
                             }
 
+                            // Stats Overview
                             Rectangle {
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: 75
+                                Layout.preferredHeight: 90
                                 color: root.surfaceColor
-                                radius: 10
+                                radius: 12
 
-                                GridLayout {
+                                RowLayout {
                                     anchors.fill: parent
-                                    anchors.margins: 12
-                                    columns: 4
-                                    columnSpacing: 20
+                                    anchors.margins: 20
+                                    spacing: 30
 
-                                    StatItem {
+                                    LibraryStat {
                                         icon: "🎵"
-                                        label: qsTr("Tracks")
                                         value: libraryModel.totalTracks
+                                        label: qsTr("Tracks")
                                     }
 
-                                    StatItem {
+                                    LibraryStat {
                                         icon: "🎤"
-                                        label: qsTr("Artists")
                                         value: libraryModel.totalArtists
+                                        label: qsTr("Artists")
                                     }
 
-                                    StatItem {
+                                    LibraryStat {
                                         icon: "💿"
-                                        label: qsTr("Albums")
                                         value: libraryModel.totalAlbums
+                                        label: qsTr("Albums")
                                     }
 
-                                    StatItem {
+                                    LibraryStat {
                                         icon: "⏱️"
-                                        label: qsTr("Duration")
                                         value: formatDuration(libraryModel.totalDuration)
+                                        label: qsTr("Duration")
                                         isTime: true
                                     }
                                 }
                             }
 
-                            ListView {
+                            // Track List
+                            Rectangle {
                                 Layout.fillWidth: true
                                 Layout.fillHeight: true
-                                clip: true
-                                spacing: 6
+                                color: root.surfaceColor
+                                radius: 12
 
-                                model: libraryModel
+                                ListView {
+                                    anchors.fill: parent
+                                    anchors.margins: 2
+                                    clip: true
+                                    spacing: 2
+                                    model: libraryModel
 
-                                delegate: Rectangle {
-                                    width: ListView.view.width
-                                    height: 65
-                                    color: mouseArea.containsMouse ? root.surfaceLightColor : root.surfaceColor
-                                    radius: 7
+                                    delegate: Rectangle {
+                                        width: ListView.view.width
+                                        height: 70
+                                        color: mouseArea.containsMouse ? root.surfaceLightColor : root.surfaceColor
 
-                                    MouseArea {
-                                        id: mouseArea
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        onDoubleClicked: audioController.openFile(model.path)
-                                    }
-
-                                    RowLayout {
-                                        anchors.fill: parent
-                                        anchors.margins: 12
-                                        spacing: 12
-
-                                        Label {
-                                            text: (index + 1).toString()
-                                            font.pixelSize: 12
-                                            color: root.textSecondaryColor
-                                            Layout.preferredWidth: 30
-                                            horizontalAlignment: Text.AlignRight
+                                        MouseArea {
+                                            id: mouseArea
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            onDoubleClicked: audioController.openFile(model.path)
                                         }
 
-                                        ColumnLayout {
-                                            Layout.fillWidth: true
-                                            spacing: 4
+                                        RowLayout {
+                                            anchors.fill: parent
+                                            anchors.margins: 15
+                                            spacing: 15
 
                                             Label {
-                                                text: model.title || "Unknown"
-                                                font.pixelSize: 13
-                                                font.bold: true
-                                                color: root.textColor
-                                                elide: Text.ElideRight
+                                                text: (index + 1).toString()
+                                                font.pixelSize: 14
+                                                color: root.textSecondaryColor
+                                                Layout.preferredWidth: 30
+                                                horizontalAlignment: Text.AlignRight
+                                            }
+
+                                            ColumnLayout {
                                                 Layout.fillWidth: true
-                                            }
-
-                                            RowLayout {
-                                                spacing: 8
+                                                spacing: 4
 
                                                 Label {
-                                                    text: model.artist || "Unknown Artist"
-                                                    font.pixelSize: 11
-                                                    color: root.textSecondaryColor
+                                                    text: model.title || "Unknown"
+                                                    font.pixelSize: 16
+                                                    font.bold: true
+                                                    color: root.textColor
+                                                    elide: Text.ElideRight
+                                                    Layout.fillWidth: true
                                                 }
 
-                                                Label {
-                                                    text: "•"
-                                                    font.pixelSize: 11
-                                                    color: root.textSecondaryColor
-                                                }
+                                                RowLayout {
+                                                    spacing: 8
 
-                                                Label {
-                                                    text: model.album || "Unknown Album"
-                                                    font.pixelSize: 11
-                                                    color: root.textSecondaryColor
+                                                    Label {
+                                                        text: model.artist || "Unknown Artist"
+                                                        font.pixelSize: 12
+                                                        color: root.textSecondaryColor
+                                                    }
+
+                                                    Label {
+                                                        text: "•"
+                                                        font.pixelSize: 12
+                                                        color: root.textSecondaryColor
+                                                    }
+
+                                                    Label {
+                                                        text: model.album || "Unknown Album"
+                                                        font.pixelSize: 12
+                                                        color: root.textSecondaryColor
+                                                    }
                                                 }
                                             }
-                                        }
 
-                                        Label {
-                                            text: formatDuration(model.duration)
-                                            font.pixelSize: 11
-                                            color: root.textSecondaryColor
-                                            Layout.preferredWidth: 50
-                                            horizontalAlignment: Text.AlignRight
-                                        }
-
-                                        Button {
-                                            text: "▶"
-                                            implicitWidth: 38
-                                            implicitHeight: 38
-                                            onClicked: audioController.openFile(model.path)
-
-                                            background: Rectangle {
-                                                radius: 19
-                                                color: parent.pressed ? root.primaryColor : "transparent"
-                                                border.color: root.primaryColor
-                                                border.width: 2
+                                            Label {
+                                                text: formatDuration(model.duration)
+                                                font.pixelSize: 12
+                                                color: root.textSecondaryColor
+                                                Layout.preferredWidth: 50
+                                                horizontalAlignment: Text.AlignRight
                                             }
 
-                                            contentItem: Text {
-                                                text: parent.text
-                                                color: root.primaryColor
-                                                horizontalAlignment: Text.AlignHCenter
-                                                verticalAlignment: Text.AlignVCenter
-                                                font.pixelSize: 13
+                                            Button {
+                                                text: "▶"
+                                                implicitWidth: 38
+                                                implicitHeight: 38
+                                                onClicked: audioController.openFile(model.path)
+
+                                                background: Rectangle {
+                                                    radius: 19
+                                                    color: parent.pressed ? root.primaryColor : "transparent"
+                                                    border.color: root.primaryColor
+                                                    border.width: 2
+                                                }
+
+                                                contentItem: Text {
+                                                    text: parent.text
+                                                    color: root.primaryColor
+                                                    horizontalAlignment: Text.AlignHCenter
+                                                    verticalAlignment: Text.AlignVCenter
+                                                    font.pixelSize: 13
+                                                }
                                             }
                                         }
                                     }
-                                }
 
-                                ScrollBar.vertical: ScrollBar {
-                                    policy: ScrollBar.AsNeeded
+                                    ScrollBar.vertical: ScrollBar {
+                                        policy: ScrollBar.AsNeeded
+                                    }
                                 }
                             }
                         }
@@ -1139,8 +1053,8 @@ ApplicationWindow {
 
                         Flickable {
                             anchors.fill: parent
-                            anchors.margins: 20
-                            contentHeight: settingsContent.height + 40
+                            anchors.margins: 30
+                            contentHeight: settingsContent.height
                             contentWidth: width
                             clip: true
                             boundsBehavior: Flickable.StopAtBounds
@@ -1148,305 +1062,102 @@ ApplicationWindow {
                             ColumnLayout {
                                 id: settingsContent
                                 width: parent.width
-                                spacing: 20
+                                spacing: 25
 
                                 Label {
                                     text: qsTr("Settings & About")
-                                    font.pixelSize: 26
+                                    font.pixelSize: 32
                                     font.bold: true
                                     color: root.textColor
-                                    Layout.topMargin: 5
                                 }
 
-                                Rectangle {
+                                SettingsCard {
                                     Layout.fillWidth: true
-                                    implicitHeight: appInfoLayout.implicitHeight + 40
-                                    color: root.surfaceColor
-                                    radius: 10
+                                    title: qsTr("📱 Application Info")
 
-                                    ColumnLayout {
-                                        id: appInfoLayout
-                                        anchors.fill: parent
-                                        anchors.margins: 20
-                                        spacing: 15
+                                    GridLayout {
+                                        Layout.fillWidth: true
+                                        columns: 2
+                                        rowSpacing: 12
+                                        columnSpacing: 20
 
-                                        Label {
-                                            text: qsTr("📱 Application Info")
-                                            font.pixelSize: 16
-                                            font.bold: true
-                                            color: root.textColor
-                                        }
-
-                                        GridLayout {
-                                            Layout.fillWidth: true
-                                            columns: 2
-                                            rowSpacing: 10
-                                            columnSpacing: 15
-
-                                            Label {
-                                                text: qsTr("Name:")
-                                                font.pixelSize: 12
-                                                color: root.textSecondaryColor
-                                                Layout.preferredWidth: 120
-                                            }
-
-                                            Label {
-                                                text: qsTr("Finix Player")
-                                                font.pixelSize: 12
-                                                font.bold: true
-                                                color: root.textColor
-                                                Layout.fillWidth: true
-                                            }
-
-                                            Label {
-                                                text: qsTr("Version:")
-                                                font.pixelSize: 12
-                                                color: root.textSecondaryColor
-                                            }
-
-                                            Label {
-                                                text: qsTr("1.0.0")
-                                                font.pixelSize: 12
-                                                font.bold: true
-                                                color: root.textColor
-                                                Layout.fillWidth: true
-                                            }
-
-                                            Label {
-                                                text: qsTr("Framework:")
-                                                font.pixelSize: 12
-                                                color: root.textSecondaryColor
-                                            }
-
-                                            Label {
-                                                text: qsTr("Qt 6.10 + C++17")
-                                                font.pixelSize: 12
-                                                font.bold: true
-                                                color: root.textColor
-                                                Layout.fillWidth: true
-                                            }
-
-                                            Label {
-                                                text: qsTr("Build:")
-                                                font.pixelSize: 12
-                                                color: root.textSecondaryColor
-                                            }
-
-                                            Label {
-                                                text: qsTr("Release")
-                                                font.pixelSize: 12
-                                                font.bold: true
-                                                color: root.textColor
-                                                Layout.fillWidth: true
-                                            }
-                                        }
+                                        SettingItem { label: qsTr("Name:"); value: qsTr("Finix Player") }
+                                        SettingItem { label: qsTr("Version:"); value: qsTr("1.0.0") }
+                                        SettingItem { label: qsTr("Framework:"); value: qsTr("Qt 6.10 + C++17") }
+                                        SettingItem { label: qsTr("Build:"); value: qsTr("Release") }
                                     }
                                 }
 
-                                Rectangle {
+                                SettingsCard {
                                     Layout.fillWidth: true
-                                    implicitHeight: featuresLayout.implicitHeight + 40
-                                    color: root.surfaceColor
-                                    radius: 10
+                                    title: qsTr("✨ Features")
 
                                     ColumnLayout {
-                                        id: featuresLayout
-                                        anchors.fill: parent
-                                        anchors.margins: 20
-                                        spacing: 12
+                                        Layout.fillWidth: true
+                                        spacing: 8
 
-                                        Label {
-                                            text: qsTr("✨ Features")
-                                            font.pixelSize: 16
-                                            font.bold: true
-                                            color: root.textColor
-                                        }
-
-                                        ColumnLayout {
-                                            Layout.fillWidth: true
-                                            spacing: 8
-
-                                            Label {
-                                                Layout.fillWidth: true
-                                                text: qsTr("• Local audio file playback (MP3, FLAC, OGG, WAV, M4A, AAC)")
-                                                font.pixelSize: 12
-                                                color: root.textSecondaryColor
-                                                wrapMode: Text.WordWrap
-                                            }
-
-                                            Label {
-                                                Layout.fillWidth: true
-                                                text: qsTr("• YouTube audio streaming with search")
-                                                font.pixelSize: 12
-                                                color: root.textSecondaryColor
-                                                wrapMode: Text.WordWrap
-                                            }
-
-                                            Label {
-                                                Layout.fillWidth: true
-                                                text: qsTr("• Real-time audio effects (Gain, Balance, Speed, Fade In)")
-                                                font.pixelSize: 12
-                                                color: root.textSecondaryColor
-                                                wrapMode: Text.WordWrap
-                                            }
-
-                                            Label {
-                                                Layout.fillWidth: true
-                                                text: qsTr("• Music library with search and metadata")
-                                                font.pixelSize: 12
-                                                color: root.textSecondaryColor
-                                                wrapMode: Text.WordWrap
-                                            }
-
-                                            Label {
-                                                Layout.fillWidth: true
-                                                text: qsTr("• Modern user interface with dark theme")
-                                                font.pixelSize: 12
-                                                color: root.textSecondaryColor
-                                                wrapMode: Text.WordWrap
-                                            }
-                                        }
+                                        FeatureItem { text: qsTr("Local audio file playback (MP3, FLAC, OGG, WAV, M4A, AAC)") }
+                                        FeatureItem { text: qsTr("YouTube audio streaming with search") }
+                                        FeatureItem { text: qsTr("Real-time audio effects (Gain, Balance, Speed, Fade In)") }
+                                        FeatureItem { text: qsTr("Music library with search and metadata") }
+                                        FeatureItem { text: qsTr("Modern user interface with dark theme") }
                                     }
                                 }
 
-                                Rectangle {
+                                SettingsCard {
                                     Layout.fillWidth: true
-                                    implicitHeight: aboutLayout.implicitHeight + 40
-                                    color: root.surfaceColor
-                                    radius: 10
+                                    title: qsTr("⌨️ Keyboard Shortcuts")
 
-                                    ColumnLayout {
-                                        id: aboutLayout
-                                        anchors.fill: parent
-                                        anchors.margins: 20
-                                        spacing: 12
+                                    GridLayout {
+                                        Layout.fillWidth: true
+                                        columns: 2
+                                        rowSpacing: 12
+                                        columnSpacing: 20
 
-                                        Label {
-                                            text: qsTr("ℹ️ About")
-                                            font.pixelSize: 16
-                                            font.bold: true
-                                            color: root.textColor
-                                        }
-
-                                        ColumnLayout {
-                                            Layout.fillWidth: true
-                                            spacing: 10
-
-                                            Label {
-                                                Layout.fillWidth: true
-                                                text: qsTr("Finix Player is a modern, feature-rich music player built with Qt 6 and C++.")
-                                                font.pixelSize: 12
-                                                color: root.textSecondaryColor
-                                                wrapMode: Text.WordWrap
-                                            }
-
-                                            Label {
-                                                Layout.fillWidth: true
-                                                text: qsTr("The application demonstrates advanced C++ programming concepts and modern Qt development practices.")
-                                                font.pixelSize: 12
-                                                color: root.textSecondaryColor
-                                                wrapMode: Text.WordWrap
-                                            }
-
-                                            Label {
-                                                Layout.fillWidth: true
-                                                text: qsTr("Developed with Qt Multimedia for high-quality audio playback and real-time effects processing.")
-                                                font.pixelSize: 12
-                                                color: root.textSecondaryColor
-                                                wrapMode: Text.WordWrap
-                                            }
-
-                                            Label {
-                                                text: qsTr("© 2024 Finix Player. All rights reserved.")
-                                                font.pixelSize: 10
-                                                color: root.textSecondaryColor
-                                                Layout.topMargin: 10
-                                            }
-                                        }
+                                        ShortcutItem { shortcut: qsTr("Space"); action: qsTr("Play/Pause") }
+                                        ShortcutItem { shortcut: qsTr("Ctrl+O"); action: qsTr("Open File") }
+                                        ShortcutItem { shortcut: qsTr("Ctrl+L"); action: qsTr("Open Library") }
+                                        ShortcutItem { shortcut: qsTr("↑/↓"); action: qsTr("Volume Up/Down") }
                                     }
                                 }
 
-                                Rectangle {
+                                SettingsCard {
                                     Layout.fillWidth: true
-                                    implicitHeight: controlsLayout.implicitHeight + 40
-                                    color: root.surfaceColor
-                                    radius: 10
+                                    title: qsTr("ℹ️ About")
 
                                     ColumnLayout {
-                                        id: controlsLayout
-                                        anchors.fill: parent
-                                        anchors.margins: 20
+                                        Layout.fillWidth: true
                                         spacing: 12
 
                                         Label {
-                                            text: qsTr("⌨️ Keyboard Shortcuts")
-                                            font.pixelSize: 16
-                                            font.bold: true
-                                            color: root.textColor
+                                            Layout.fillWidth: true
+                                            text: qsTr("Finix Player is a modern, feature-rich music player built with Qt 6 and C++.")
+                                            font.pixelSize: 14
+                                            color: root.textSecondaryColor
+                                            wrapMode: Text.WordWrap
                                         }
 
-                                        GridLayout {
+                                        Label {
                                             Layout.fillWidth: true
-                                            columns: 2
-                                            rowSpacing: 10
-                                            columnSpacing: 15
+                                            text: qsTr("The application demonstrates advanced C++ programming concepts and modern Qt development practices.")
+                                            font.pixelSize: 14
+                                            color: root.textSecondaryColor
+                                            wrapMode: Text.WordWrap
+                                        }
 
-                                            Label {
-                                                text: qsTr("Space:")
-                                                font.pixelSize: 12
-                                                color: root.textSecondaryColor
-                                                Layout.preferredWidth: 120
-                                            }
+                                        Label {
+                                            Layout.fillWidth: true
+                                            text: qsTr("Developed with Qt Multimedia for high-quality audio playback and real-time effects processing.")
+                                            font.pixelSize: 14
+                                            color: root.textSecondaryColor
+                                            wrapMode: Text.WordWrap
+                                        }
 
-                                            Label {
-                                                text: qsTr("Play/Pause")
-                                                font.pixelSize: 12
-                                                font.bold: true
-                                                color: root.textColor
-                                                Layout.fillWidth: true
-                                            }
-
-                                            Label {
-                                                text: qsTr("Ctrl+O:")
-                                                font.pixelSize: 12
-                                                color: root.textSecondaryColor
-                                            }
-
-                                            Label {
-                                                text: qsTr("Open File")
-                                                font.pixelSize: 12
-                                                font.bold: true
-                                                color: root.textColor
-                                                Layout.fillWidth: true
-                                            }
-
-                                            Label {
-                                                text: qsTr("Ctrl+L:")
-                                                font.pixelSize: 12
-                                                color: root.textSecondaryColor
-                                            }
-
-                                            Label {
-                                                text: qsTr("Open Library")
-                                                font.pixelSize: 12
-                                                font.bold: true
-                                                color: root.textColor
-                                                Layout.fillWidth: true
-                                            }
-
-                                            Label {
-                                                text: qsTr("↑/↓:")
-                                                font.pixelSize: 12
-                                                color: root.textSecondaryColor
-                                            }
-
-                                            Label {
-                                                text: qsTr("Volume Up/Down")
-                                                font.pixelSize: 12
-                                                font.bold: true
-                                                color: root.textColor
-                                                Layout.fillWidth: true
-                                            }
+                                        Label {
+                                            text: qsTr("© 2024 Finix Player. All rights reserved.")
+                                            font.pixelSize: 12
+                                            color: root.textSecondaryColor
+                                            Layout.topMargin: 10
                                         }
                                     }
                                 }
@@ -1458,26 +1169,27 @@ ApplicationWindow {
                 }
             }
 
-            // ==================== PLAYBACK CONTROLS (BOTTOM BAR) ====================
+            // ==================== PLAYBACK CONTROLS ====================
             Rectangle {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 110
+                Layout.preferredHeight: 120
                 color: root.surfaceColor
 
                 ColumnLayout {
                     anchors.fill: parent
-                    anchors.margins: 15
-                    spacing: 8
+                    anchors.margins: 20
+                    spacing: 12
 
+                    // Progress Bar
                     RowLayout {
                         Layout.fillWidth: true
-                        spacing: 8
+                        spacing: 15
 
                         Label {
                             text: audioController.formattedPosition
-                            font.pixelSize: 10
+                            font.pixelSize: 12
                             color: root.textSecondaryColor
-                            Layout.preferredWidth: 45
+                            Layout.preferredWidth: 50
                         }
 
                         Slider {
@@ -1493,16 +1205,16 @@ ApplicationWindow {
                                 x: progressSlider.leftPadding
                                 y: progressSlider.topPadding + progressSlider.availableHeight / 2 - height / 2
                                 implicitWidth: 200
-                                implicitHeight: 4
+                                implicitHeight: 6
                                 width: progressSlider.availableWidth
                                 height: implicitHeight
-                                radius: 2
+                                radius: 3
                                 color: root.surfaceLightColor
 
                                 Rectangle {
                                     width: progressSlider.visualPosition * parent.width
                                     height: parent.height
-                                    radius: 2
+                                    radius: 3
                                     color: root.primaryColor
                                 }
                             }
@@ -1510,9 +1222,9 @@ ApplicationWindow {
                             handle: Rectangle {
                                 x: progressSlider.leftPadding + progressSlider.visualPosition * (progressSlider.availableWidth - width)
                                 y: progressSlider.topPadding + progressSlider.availableHeight / 2 - height / 2
-                                implicitWidth: 12
-                                implicitHeight: 12
-                                radius: 6
+                                implicitWidth: 16
+                                implicitHeight: 16
+                                radius: 8
                                 color: progressSlider.pressed ? root.primaryColor : root.textColor
                                 border.color: root.primaryColor
                                 border.width: 2
@@ -1522,51 +1234,53 @@ ApplicationWindow {
 
                         Label {
                             text: audioController.formattedDuration
-                            font.pixelSize: 10
+                            font.pixelSize: 12
                             color: root.textSecondaryColor
-                            Layout.preferredWidth: 45
+                            Layout.preferredWidth: 50
                             horizontalAlignment: Text.AlignRight
                         }
                     }
 
+                    // Control Buttons
                     RowLayout {
                         Layout.fillWidth: true
-                        spacing: 15
+                        spacing: 20
 
+                        // Track Info
                         RowLayout {
                             Layout.fillWidth: true
                             Layout.maximumWidth: 300
-                            spacing: 12
+                            spacing: 15
 
                             Rectangle {
-                                width: 48
-                                height: 48
-                                radius: 6
+                                width: 56
+                                height: 56
+                                radius: 8
                                 color: root.surfaceLightColor
 
                                 Image {
                                     anchors.fill: parent
-                                    anchors.margins: 1
+                                    anchors.margins: 2
                                     source: audioController.thumbnailUrl || ""
                                     fillMode: Image.PreserveAspectCrop
-                                    visible: source != ""
+                                    visible: source !== ""
                                 }
 
                                 Label {
                                     anchors.centerIn: parent
                                     text: "🎵"
-                                    font.pixelSize: 22
+                                    font.pixelSize: 24
                                     visible: audioController.thumbnailUrl === ""
                                 }
                             }
 
                             ColumnLayout {
                                 Layout.fillWidth: true
-                                spacing: 2
+                                spacing: 4
 
                                 Label {
                                     text: audioController.trackTitle || qsTr("No track")
-                                    font.pixelSize: 12
+                                    font.pixelSize: 14
                                     font.bold: true
                                     color: root.textColor
                                     elide: Text.ElideRight
@@ -1575,7 +1289,7 @@ ApplicationWindow {
 
                                 Label {
                                     text: audioController.trackArtist || qsTr("Unknown")
-                                    font.pixelSize: 10
+                                    font.pixelSize: 12
                                     color: root.textSecondaryColor
                                     elide: Text.ElideRight
                                     Layout.fillWidth: true
@@ -1585,98 +1299,42 @@ ApplicationWindow {
 
                         Item { Layout.fillWidth: true }
 
+                        // Playback Controls
                         RowLayout {
                             Layout.alignment: Qt.AlignCenter
-                            spacing: 12
+                            spacing: 15
 
-                            RoundButton {
+                            ControlButton {
                                 text: "⏮"
-                                implicitWidth: 36
-                                implicitHeight: 36
-                                font.pixelSize: 14
-                                enabled: audioController.duration > 0
-
                                 onClicked: audioController.seek(0)
-
-                                background: Rectangle {
-                                    radius: 18
-                                    color: parent.pressed ? root.surfaceLightColor : "transparent"
-                                }
-
-                                contentItem: Text {
-                                    text: parent.text
-                                    color: parent.enabled ? root.textColor : root.textSecondaryColor
-                                    horizontalAlignment: Text.AlignHCenter
-                                    verticalAlignment: Text.AlignVCenter
-                                    font.pixelSize: parent.font.pixelSize
-                                }
-                            }
-
-                            RoundButton {
-                                text: audioController.isPlaying ? "⏸" : "▶"
-                                implicitWidth: 48
-                                implicitHeight: 48
-                                font.pixelSize: 18
                                 enabled: audioController.duration > 0
-
-                                onClicked: {
-                                    if (audioController.isPlaying) {
-                                        audioController.pause()
-                                    } else {
-                                        audioController.play()
-                                    }
-                                }
-
-                                background: Rectangle {
-                                    radius: 24
-                                    color: parent.enabled ?
-                                           (parent.pressed ? Qt.lighter(root.primaryColor, 1.2) : root.primaryColor) :
-                                           root.surfaceLightColor
-                                }
-
-                                contentItem: Text {
-                                    text: parent.text
-                                    color: parent.enabled ? "white" : root.textSecondaryColor
-                                    horizontalAlignment: Text.AlignHCenter
-                                    verticalAlignment: Text.AlignVCenter
-                                    font.pixelSize: parent.font.pixelSize
-                                }
                             }
 
-                            RoundButton {
+                            ControlButton {
+                                text: audioController.isPlaying ? "⏸" : "▶"
+                                primary: true
+                                onClicked: audioController.isPlaying ? audioController.pause() : audioController.play()
+                                enabled: audioController.duration > 0
+                            }
+
+                            ControlButton {
                                 text: "⏭"
-                                implicitWidth: 36
-                                implicitHeight: 36
-                                font.pixelSize: 14
-                                enabled: audioController.queueSize() > 0
-
                                 onClicked: audioController.playNext()
-
-                                background: Rectangle {
-                                    radius: 18
-                                    color: parent.pressed ? root.surfaceLightColor : "transparent"
-                                }
-
-                                contentItem: Text {
-                                    text: parent.text
-                                    color: parent.enabled ? root.textColor : root.textSecondaryColor
-                                    horizontalAlignment: Text.AlignHCenter
-                                    verticalAlignment: Text.AlignVCenter
-                                    font.pixelSize: parent.font.pixelSize
-                                }
+                                enabled: audioController.queueSize() > 0
                             }
                         }
 
                         Item { Layout.fillWidth: true }
 
+                        // Volume Control
                         RowLayout {
                             Layout.alignment: Qt.AlignRight
-                            Layout.maximumWidth: 180
-                            spacing: 8
+                            Layout.maximumWidth: 200
+                            spacing: 12
 
                             Label {
                                 text: volumeSlider.value > 0.01 ? "🔊" : "🔇"
-                                font.pixelSize: 16
+                                font.pixelSize: 18
                             }
 
                             Slider {
@@ -1684,23 +1342,23 @@ ApplicationWindow {
                                 from: 0
                                 to: 1
                                 value: audioController.volume
-                                implicitWidth: 100
+                                Layout.fillWidth: true
                                 onMoved: audioController.setVolume(value)
 
                                 background: Rectangle {
                                     x: volumeSlider.leftPadding
                                     y: volumeSlider.topPadding + volumeSlider.availableHeight / 2 - height / 2
                                     implicitWidth: 100
-                                    implicitHeight: 4
+                                    implicitHeight: 6
                                     width: volumeSlider.availableWidth
                                     height: implicitHeight
-                                    radius: 2
+                                    radius: 3
                                     color: root.surfaceLightColor
 
                                     Rectangle {
                                         width: volumeSlider.visualPosition * parent.width
                                         height: parent.height
-                                        radius: 2
+                                        radius: 3
                                         color: root.primaryColor
                                     }
                                 }
@@ -1708,9 +1366,9 @@ ApplicationWindow {
                                 handle: Rectangle {
                                     x: volumeSlider.leftPadding + volumeSlider.visualPosition * (volumeSlider.availableWidth - width)
                                     y: volumeSlider.topPadding + volumeSlider.availableHeight / 2 - height / 2
-                                    implicitWidth: 12
-                                    implicitHeight: 12
-                                    radius: 6
+                                    implicitWidth: 16
+                                    implicitHeight: 16
+                                    radius: 8
                                     color: volumeSlider.pressed ? root.primaryColor : root.textColor
                                     border.color: root.primaryColor
                                     border.width: 2
@@ -1720,9 +1378,9 @@ ApplicationWindow {
 
                             Label {
                                 text: Math.round(volumeSlider.value * 100) + "%"
-                                font.pixelSize: 10
+                                font.pixelSize: 12
                                 color: root.textSecondaryColor
-                                Layout.preferredWidth: 35
+                                Layout.preferredWidth: 40
                             }
                         }
                     }
@@ -1763,42 +1421,36 @@ ApplicationWindow {
     Popup {
         id: youtubeDialog
         anchors.centerIn: Overlay.overlay
-        width: 480
-        height: 190
+        width: 500
+        height: 200
         modal: true
         focus: true
         closePolicy: Popup.CloseOnEscape
 
         background: Rectangle {
             color: root.surfaceColor
-            radius: 12
+            radius: 16
             border.color: root.primaryColor
             border.width: 2
         }
 
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: 20
-            spacing: 15
+            anchors.margins: 25
+            spacing: 20
 
             Label {
                 text: qsTr("🎬 Play from YouTube")
-                font.pixelSize: 18
+                font.pixelSize: 20
                 font.bold: true
                 color: root.textColor
-            }
-
-            Label {
-                text: qsTr("Enter song name or YouTube URL")
-                font.pixelSize: 11
-                color: root.textSecondaryColor
             }
 
             TextField {
                 id: youtubeInput
                 Layout.fillWidth: true
-                placeholderText: qsTr("e.g., Imagine Dragons - Believer")
-                font.pixelSize: 13
+                placeholderText: qsTr("Enter song name or YouTube URL...")
+                font.pixelSize: 14
                 color: root.textColor
 
                 background: Rectangle {
@@ -1810,107 +1462,134 @@ ApplicationWindow {
 
                 onAccepted: {
                     if (text.length > 0) {
+                        youtubeLoadingDialog.open()
                         audioController.playYouTubeAudio(text)
-                        youtubeDialog.close()
-                        youtubeInput.text = ""
                     }
                 }
             }
 
             RowLayout {
                 Layout.fillWidth: true
-                spacing: 10
+                spacing: 15
 
-                Button {
-                    Layout.fillWidth: true
+                DialogButton {
                     text: qsTr("Cancel")
-                    implicitHeight: 38
-
                     onClicked: {
                         youtubeDialog.close()
                         youtubeInput.text = ""
-                    }
-
-                    background: Rectangle {
-                        radius: 8
-                        color: parent.pressed ? root.surfaceLightColor : root.backgroundColor
-                        border.color: root.surfaceLightColor
-                        border.width: 1
-                    }
-
-                    contentItem: Text {
-                        text: parent.text
-                        color: root.textColor
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        font.pixelSize: 12
                     }
                 }
 
-                Button {
-                    Layout.fillWidth: true
+                DialogButton {
                     text: qsTr("Play")
-                    implicitHeight: 38
+                    primary: true
                     enabled: youtubeInput.text.length > 0
-
                     onClicked: {
+                        youtubeLoadingDialog.open()
                         audioController.playYouTubeAudio(youtubeInput.text)
                         youtubeDialog.close()
                         youtubeInput.text = ""
-                    }
-
-                    background: Rectangle {
-                        radius: 8
-                        color: parent.enabled ?
-                               (parent.pressed ? Qt.lighter(root.primaryColor, 1.2) : root.primaryColor) :
-                               root.surfaceLightColor
-                    }
-
-                    contentItem: Text {
-                        text: parent.text
-                        color: parent.enabled ? "white" : root.textSecondaryColor
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        font.pixelSize: 12
-                        font.bold: true
                     }
                 }
             }
         }
     }
 
+    // YouTube Loading Dialog
+    Popup {
+        id: youtubeLoadingDialog
+        anchors.centerIn: Overlay.overlay
+        width: 400
+        height: 180
+        modal: true
+        closePolicy: Popup.NoAutoClose
+
+        background: Rectangle {
+            color: root.surfaceColor
+            radius: 16
+            border.color: root.primaryColor
+            border.width: 2
+        }
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 25
+            spacing: 20
+
+            Label {
+                text: qsTr("🔄 Loading YouTube Audio")
+                font.pixelSize: 18
+                font.bold: true
+                color: root.textColor
+                Layout.alignment: Qt.AlignHCenter
+            }
+
+            BusyIndicator {
+                Layout.alignment: Qt.AlignHCenter
+                running: youtubeLoadingDialog.opened
+            }
+
+            Label {
+                text: qsTr("Please wait while we load your audio...")
+                font.pixelSize: 14
+                color: root.textSecondaryColor
+                Layout.alignment: Qt.AlignHCenter
+            }
+        }
+
+        // Close when audio starts playing
+        Connections {
+            target: audioController
+            function onIsPlayingChanged() {
+                if (audioController.isPlaying) {
+                    youtubeLoadingDialog.close()
+                }
+            }
+        }
+
+        // Auto-close after 30 seconds as fallback
+        Timer {
+            id: loadingTimeout
+            interval: 30000
+            onTriggered: youtubeLoadingDialog.close()
+        }
+
+        onOpened: loadingTimeout.start()
+        onClosed: loadingTimeout.stop()
+    }
+
     // Save Playlist Dialog
     Popup {
         id: savePlaylistDialog
         anchors.centerIn: Overlay.overlay
-        width: 450
-        height: 240
+        width: 480
+        height: 260
         modal: true
         focus: true
         closePolicy: Popup.CloseOnEscape
 
         background: Rectangle {
             color: root.surfaceColor
-            radius: 12
+            radius: 16
             border.color: root.accentColor
             border.width: 2
         }
 
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: 20
-            spacing: 15
+            anchors.margins: 25
+            spacing: 20
 
             Label {
-                text: qsTr("💾 Save Current Library as Playlist")
-                font.pixelSize: 18
+                text: qsTr("💾 Save Playlist")
+                font.pixelSize: 20
                 font.bold: true
                 color: root.textColor
             }
 
             Label {
                 text: qsTr("Enter a name for your playlist (will be saved as M3U)")
-                font.pixelSize: 11
+                font.pixelSize: 14
                 color: root.textSecondaryColor
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
@@ -1919,8 +1598,8 @@ ApplicationWindow {
             TextField {
                 id: playlistNameInput
                 Layout.fillWidth: true
-                placeholderText: qsTr("e.g., My Favorite Songs")
-                font.pixelSize: 13
+                placeholderText: qsTr("My Favorite Songs")
+                font.pixelSize: 14
                 color: root.textColor
 
                 background: Rectangle {
@@ -1940,64 +1619,28 @@ ApplicationWindow {
             Label {
                 Layout.fillWidth: true
                 text: qsTr("📁 Playlist will be saved in the application directory")
-                font.pixelSize: 10
+                font.pixelSize: 12
                 color: root.textSecondaryColor
                 wrapMode: Text.WordWrap
             }
 
             RowLayout {
                 Layout.fillWidth: true
-                spacing: 10
+                spacing: 15
 
-                Button {
-                    Layout.fillWidth: true
+                DialogButton {
                     text: qsTr("Cancel")
-                    implicitHeight: 38
-
                     onClicked: {
                         savePlaylistDialog.close()
                         playlistNameInput.text = ""
                     }
-
-                    background: Rectangle {
-                        radius: 8
-                        color: parent.pressed ? root.surfaceLightColor : root.backgroundColor
-                        border.color: root.surfaceLightColor
-                        border.width: 1
-                    }
-
-                    contentItem: Text {
-                        text: parent.text
-                        color: root.textColor
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        font.pixelSize: 12
-                    }
                 }
 
-                Button {
-                    Layout.fillWidth: true
+                DialogButton {
                     text: qsTr("Save")
-                    implicitHeight: 38
+                    primary: true
                     enabled: playlistNameInput.text.trim().length > 0
-
                     onClicked: savePlaylist()
-
-                    background: Rectangle {
-                        radius: 8
-                        color: parent.enabled ?
-                               (parent.pressed ? Qt.lighter(root.accentColor, 1.2) : root.accentColor) :
-                               root.surfaceLightColor
-                    }
-
-                    contentItem: Text {
-                        text: parent.text
-                        color: parent.enabled ? "white" : root.textSecondaryColor
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        font.pixelSize: 12
-                        font.bold: true
-                    }
                 }
             }
         }
@@ -2018,36 +1661,36 @@ ApplicationWindow {
         }
     }
 
-    // Save Confirmation Popup
+    // Save Confirmation
     Popup {
         id: saveConfirmationPopup
         anchors.centerIn: Overlay.overlay
-        width: 350
-        height: 150
+        width: 380
+        height: 160
         modal: true
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
         background: Rectangle {
             color: root.surfaceColor
-            radius: 10
+            radius: 16
             border.color: "#4CAF50"
             border.width: 2
         }
 
         ColumnLayout {
             anchors.centerIn: parent
-            spacing: 15
+            spacing: 20
 
             Label {
-                text: "✓"
-                font.pixelSize: 36
+                text: "✅"
+                font.pixelSize: 40
                 color: "#4CAF50"
                 Layout.alignment: Qt.AlignHCenter
             }
 
             Label {
                 text: qsTr("Playlist saved successfully!")
-                font.pixelSize: 14
+                font.pixelSize: 16
                 font.bold: true
                 color: root.textColor
                 Layout.alignment: Qt.AlignHCenter
@@ -2061,13 +1704,13 @@ ApplicationWindow {
         }
     }
 
-    // Scan Progress Dialog
+    // Scan Progress Dialog - FIXED: Will properly close when scan completes
     Popup {
         id: scanProgressDialog
         modal: true
         anchors.centerIn: Overlay.overlay
-        width: 380
-        height: 200
+        width: 420
+        height: 220
         closePolicy: Popup.CloseOnEscape
 
         property int currentProgress: 0
@@ -2075,19 +1718,19 @@ ApplicationWindow {
 
         background: Rectangle {
             color: root.surfaceColor
-            radius: 10
+            radius: 16
             border.color: root.primaryColor
             border.width: 2
         }
 
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: 20
-            spacing: 15
+            anchors.margins: 25
+            spacing: 20
 
             Label {
-                text: qsTr("Scanning Library")
-                font.pixelSize: 17
+                text: qsTr("📂 Scanning Library")
+                font.pixelSize: 18
                 font.bold: true
                 color: root.textColor
             }
@@ -2095,7 +1738,7 @@ ApplicationWindow {
             Label {
                 Layout.fillWidth: true
                 text: qsTr("Scanning for audio files in the selected directory...")
-                font.pixelSize: 12
+                font.pixelSize: 14
                 color: root.textSecondaryColor
                 wrapMode: Text.WordWrap
             }
@@ -2109,21 +1752,21 @@ ApplicationWindow {
 
                 background: Rectangle {
                     implicitWidth: 200
-                    implicitHeight: 8
+                    implicitHeight: 10
                     color: root.surfaceLightColor
-                    radius: 4
+                    radius: 5
                 }
 
                 contentItem: Item {
                     implicitWidth: 200
-                    implicitHeight: 8
+                    implicitHeight: 10
 
                     Rectangle {
                         width: scanProgressDialog.totalProgress > 0 ?
                                (scanProgressDialog.currentProgress / scanProgressDialog.totalProgress) * parent.width :
                                0
                         height: parent.height
-                        radius: 4
+                        radius: 5
                         color: root.primaryColor
                     }
                 }
@@ -2132,36 +1775,16 @@ ApplicationWindow {
             Label {
                 Layout.fillWidth: true
                 text: scanProgressDialog.totalProgress > 0 ?
-                      qsTr("Found: %1 / %2 tracks").arg(scanProgressDialog.currentProgress).arg(scanProgressDialog.totalProgress) :
+                      qsTr("Found %1 of %2 tracks").arg(scanProgressDialog.currentProgress).arg(scanProgressDialog.totalProgress) :
                       qsTr("Initializing scan...")
-                font.pixelSize: 11
+                font.pixelSize: 12
                 color: root.textSecondaryColor
                 horizontalAlignment: Text.AlignHCenter
             }
 
-            Item { Layout.fillHeight: true }
-
-            Button {
+            DialogButton {
                 Layout.alignment: Qt.AlignRight
                 text: qsTr("Close")
-                implicitWidth: 100
-                implicitHeight: 34
-
-                background: Rectangle {
-                    radius: 8
-                    color: parent.pressed ? root.primaryColor : root.surfaceLightColor
-                    border.color: root.primaryColor
-                    border.width: 1
-                }
-
-                contentItem: Text {
-                    text: parent.text
-                    color: root.textColor
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                    font.pixelSize: 11
-                }
-
                 onClicked: {
                     scanProgressDialog.close()
                     libraryModel.refresh()
@@ -2172,44 +1795,40 @@ ApplicationWindow {
 
     // ==================== CUSTOM COMPONENTS ====================
 
-    component NavButton: Item {
-        id: navButton
+    // Sidebar Button - FIXED: Properly shows menu text
+    component SidebarButton: Item {
         property string icon: ""
-        property string text: ""
+        property string label: ""
         property bool active: false
         signal clicked()
 
         Layout.fillWidth: true
-        Layout.leftMargin: 12
-        Layout.rightMargin: 12
-        implicitHeight: 46
+        Layout.leftMargin: 16
+        Layout.rightMargin: 16
+        implicitHeight: 50
 
         Rectangle {
             anchors.fill: parent
-            radius: 8
+            radius: 10
             color: active ? root.primaryColor : (mouseArea.containsMouse ? root.surfaceLightColor : "transparent")
-
-            Behavior on color {
-                ColorAnimation { duration: 150 }
-            }
         }
 
         RowLayout {
             anchors.fill: parent
-            anchors.leftMargin: 14
-            anchors.rightMargin: 14
-            spacing: 12
+            anchors.leftMargin: 20
+            anchors.rightMargin: 20
+            spacing: 15
 
             Label {
-                text: navButton.icon
-                font.pixelSize: 18
-                Layout.preferredWidth: 28
+                text: icon
+                font.pixelSize: 20
+                Layout.preferredWidth: 30
             }
 
             Label {
-                text: navButton.text
-                font.pixelSize: 13
-                font.bold: navButton.active
+                text: label
+                font.pixelSize: 14
+                font.bold: active
                 color: root.textColor
                 Layout.fillWidth: true
             }
@@ -2220,26 +1839,23 @@ ApplicationWindow {
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onClicked: navButton.clicked()
+            onClicked: parent.clicked()
         }
     }
 
-    component QuickActionCard: Rectangle {
+    // Action Card
+    component ActionCard: Rectangle {
         property string icon: ""
         property string title: ""
         property string description: ""
         signal clicked()
 
         Layout.fillWidth: true
-        implicitHeight: 115
+        implicitHeight: 120
         color: root.surfaceColor
         radius: 12
         border.color: mouseArea.containsMouse ? root.primaryColor : "transparent"
         border.width: 2
-
-        Behavior on border.color {
-            ColorAnimation { duration: 200 }
-        }
 
         MouseArea {
             id: mouseArea
@@ -2251,18 +1867,18 @@ ApplicationWindow {
 
         ColumnLayout {
             anchors.centerIn: parent
-            spacing: 10
+            spacing: 12
 
             Label {
                 Layout.alignment: Qt.AlignHCenter
                 text: icon
-                font.pixelSize: 38
+                font.pixelSize: 32
             }
 
             Label {
                 Layout.alignment: Qt.AlignHCenter
                 text: title
-                font.pixelSize: 14
+                font.pixelSize: 16
                 font.bold: true
                 color: root.textColor
             }
@@ -2270,30 +1886,31 @@ ApplicationWindow {
             Label {
                 Layout.alignment: Qt.AlignHCenter
                 text: description
-                font.pixelSize: 11
+                font.pixelSize: 12
                 color: root.textSecondaryColor
             }
         }
     }
 
-    component StatItem: ColumnLayout {
+    // Library Stat
+    component LibraryStat: ColumnLayout {
         property string icon: ""
-        property string label: ""
         property var value: 0
+        property string label: ""
         property bool isTime: false
 
-        spacing: 5
+        spacing: 6
 
         Label {
             Layout.alignment: Qt.AlignHCenter
             text: icon
-            font.pixelSize: 22
+            font.pixelSize: 24
         }
 
         Label {
             Layout.alignment: Qt.AlignHCenter
             text: isTime ? value : value.toString()
-            font.pixelSize: 17
+            font.pixelSize: 20
             font.bold: true
             color: root.primaryColor
         }
@@ -2301,15 +1918,217 @@ ApplicationWindow {
         Label {
             Layout.alignment: Qt.AlignHCenter
             text: label
-            font.pixelSize: 10
+            font.pixelSize: 12
             color: root.textSecondaryColor
         }
     }
 
-    // ==================== HELPER FUNCTIONS ====================
+    // Tool Button
+    component ToolButton: Button {
+        property bool primary: false
 
+        implicitHeight: 40
+        implicitWidth: 140
+
+        background: Rectangle {
+            radius: 8
+            color: primary ?
+                   (parent.pressed ? Qt.lighter(root.primaryColor, 1.2) : root.primaryColor) :
+                   (parent.pressed ? root.surfaceLightColor : "transparent")
+            border.color: primary ? root.primaryColor : root.textSecondaryColor
+            border.width: 1
+        }
+
+        contentItem: Text {
+            text: parent.text
+            color: primary ? "white" : root.textColor
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            font.pixelSize: 12
+            font.bold: primary
+        }
+    }
+
+    // Control Button
+    component ControlButton: Button {
+        property bool primary: false
+
+        implicitWidth: primary ? 56 : 44
+        implicitHeight: primary ? 56 : 44
+
+        background: Rectangle {
+            radius: primary ? 28 : 22
+            color: primary ?
+                   (parent.pressed ? Qt.lighter(root.primaryColor, 1.2) : root.primaryColor) :
+                   (parent.pressed ? root.surfaceLightColor : "transparent")
+            border.color: primary ? root.primaryColor : root.textSecondaryColor
+            border.width: primary ? 0 : 1
+        }
+
+        contentItem: Text {
+            text: parent.text
+            color: primary ? "white" : root.textColor
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            font.pixelSize: primary ? 20 : 16
+        }
+    }
+
+    // Dialog Button
+    component DialogButton: Button {
+        property bool primary: false
+
+        Layout.fillWidth: true
+        implicitHeight: 44
+
+        background: Rectangle {
+            radius: 8
+            color: primary ?
+                   (parent.pressed ? Qt.lighter(root.primaryColor, 1.2) : root.primaryColor) :
+                   (parent.pressed ? root.surfaceLightColor : root.backgroundColor)
+            border.color: primary ? root.primaryColor : root.surfaceLightColor
+            border.width: 2
+        }
+
+        contentItem: Text {
+            text: parent.text
+            color: primary ? "white" : root.textColor
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            font.pixelSize: 14
+            font.bold: primary
+        }
+    }
+
+    // Effect Card
+    component EffectCard: Rectangle {
+        property string title: ""
+        property string description: ""
+
+        Layout.fillWidth: true
+        implicitHeight: children[0].implicitHeight + 40
+        color: root.surfaceColor
+        radius: 12
+        border.color: root.surfaceLightColor
+        border.width: 1
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 20
+            spacing: 12
+
+            Label {
+                text: title
+                font.pixelSize: 18
+                font.bold: true
+                color: root.textColor
+            }
+
+            Label {
+                text: description
+                font.pixelSize: 14
+                color: root.textSecondaryColor
+                wrapMode: Text.WordWrap
+                Layout.fillWidth: true
+            }
+        }
+    }
+
+    // Settings Card
+    component SettingsCard: Rectangle {
+        property string title: ""
+
+        Layout.fillWidth: true
+        implicitHeight: children[0].implicitHeight + 40
+        color: root.surfaceColor
+        radius: 12
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 25
+            spacing: 15
+
+            Label {
+                text: title
+                font.pixelSize: 18
+                font.bold: true
+                color: root.textColor
+            }
+        }
+    }
+
+    // Setting Item
+    component SettingItem: RowLayout {
+        property string label: ""
+        property string value: ""
+
+        Layout.fillWidth: true
+
+        Label {
+            text: label
+            font.pixelSize: 14
+            color: root.textSecondaryColor
+            Layout.preferredWidth: 120
+        }
+
+        Label {
+            text: value
+            font.pixelSize: 14
+            font.bold: true
+            color: root.textColor
+            Layout.fillWidth: true
+        }
+    }
+
+    // Feature Item
+    component FeatureItem: RowLayout {
+        property string text: ""
+
+        Layout.fillWidth: true
+        spacing: 10
+
+        Label {
+            text: "•"
+            font.pixelSize: 14
+            color: root.primaryColor
+        }
+
+        Label {
+            text: parent.text
+            font.pixelSize: 14
+            color: root.textSecondaryColor
+            wrapMode: Text.WordWrap
+            Layout.fillWidth: true
+        }
+    }
+
+    // Shortcut Item
+    component ShortcutItem: RowLayout {
+        property string shortcut: ""
+        property string action: ""
+
+        Layout.fillWidth: true
+
+        Label {
+            text: shortcut
+            font.pixelSize: 14
+            color: root.textSecondaryColor
+            font.bold: true
+            Layout.preferredWidth: 80
+        }
+
+        Label {
+            text: action
+            font.pixelSize: 14
+            color: root.textColor
+            Layout.fillWidth: true
+        }
+    }
+
+    // ==================== HELPER FUNCTIONS ====================
     function formatDuration(milliseconds) {
         if (milliseconds <= 0 || isNaN(milliseconds)) return "0:00"
+
         var totalSeconds = Math.floor(milliseconds / 1000)
         var hours = Math.floor(totalSeconds / 3600)
         var minutes = Math.floor((totalSeconds % 3600) / 60)
@@ -2325,16 +2144,11 @@ ApplicationWindow {
     }
 
     // ==================== KEYBOARD SHORTCUTS ====================
-
     Shortcut {
         sequence: "Space"
         onActivated: {
             if (audioController.duration > 0) {
-                if (audioController.isPlaying) {
-                    audioController.pause()
-                } else {
-                    audioController.play()
-                }
+                audioController.isPlaying ? audioController.pause() : audioController.play()
             }
         }
     }
@@ -2366,10 +2180,7 @@ ApplicationWindow {
     }
 
     // ==================== INITIALIZATION ====================
-
     Component.onCompleted: {
-        console.log("Finix Player initialized")
-        console.log("Qt Version: 6.10")
-        console.log("All features loaded successfully")
+        console.log("Finix Player initialized successfully")
     }
 }
