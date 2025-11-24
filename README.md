@@ -393,7 +393,7 @@ Finix Player was developed as an educational project to explore:
 ### Get in Touch
 
 - **Email**: [kazimdsayedhossain@outlook.com](mailto:kazimdsayedhossain@outlook.com)
-- **Project Issues**: [GitHub Issues](https://github.com/kazimdsayedhossain/finix-player/issues)
+- **Project Issues**: [GitHub Issues](https://github.com/kazimdsayedhossain/Finix_Plus/issues)
 
 ### Support the Project
 
