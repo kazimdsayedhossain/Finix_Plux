@@ -55,8 +55,6 @@ QVariant LibraryModel::data(const QModelIndex& index, int role) const
     case PlayCountRole:
         return track.playCount();
     case AlbumArtRole:
-        // Return empty string if no album art available
-        // In a full implementation, this would return a path or QImage
         return QString();
     default:
         return QVariant();
@@ -406,4 +404,34 @@ void LibraryModel::sortDisplayedTracks(const QString& field)
                       return a.title().toLower() < b.title().toLower();
                   });
     }
+}
+
+bool LibraryModel::saveAsM3UPlaylist(const QString& filePath)
+{
+    QFile file(filePath);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        qWarning() << "Could not open file for writing:" << filePath;
+        emit errorOccurred("Failed to save playlist: Could not create file");
+        return false;
+    }
+
+    QTextStream out(&file);
+    out.setEncoding(QStringConverter::Utf8);
+
+    // Write M3U header
+    out << "#EXTM3U\n";
+
+    // Write each track
+    for (const Track& track : m_displayedTracks) {
+        // Format: #EXTINF:duration_in_seconds,Artist - Title
+        qint64 durationSeconds = track.duration() / 1000;
+        out << "#EXTINF:" << durationSeconds << ","
+            << track.artist() << " - " << track.title() << "\n";
+        out << track.path() << "\n";
+    }
+
+    file.close();
+
+    qDebug() << "Saved" << m_displayedTracks.size() << "tracks to playlist:" << filePath;
+    return true;
 }

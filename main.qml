@@ -43,6 +43,41 @@ ApplicationWindow {
         }
     }
 
+    function savePlaylist() {
+var playlistName = playlistNameInput.text.trim()
+if (playlistName.length > 0) {
+    // Add .m3u extension if not present
+    if (!playlistName.toLowerCase().endsWith(".m3u")) {
+        playlistName += ".m3u"
+    }
+
+    // Get the application directory path
+    var appDir = Qt.application.arguments[0]
+                 var lastSlash = Math.max(appDir.lastIndexOf('/'), appDir.lastIndexOf('\\'))
+          if (lastSlash > 0) {
+        appDir = appDir.substring(0, lastSlash)
+    }
+
+    // Create full file path
+    var fullPath = appDir + "/" + playlistName
+
+                                          console.log("Saving playlist to:", fullPath)
+
+                                  // Actually save the playlist - FIXED: Use libraryModel object
+                                  var success = libraryModel.saveAsM3UPlaylist(fullPath)
+
+          savePlaylistDialog.close()
+          playlistNameInput.text = ""
+
+        if (success) {
+        saveConfirmationPopup.savedPath = fullPath
+                                              saveConfirmationPopup.open()
+    } else {
+        saveErrorPopup.open()
+    }
+}
+}
+
     Connections {
         target: libraryModel
 
@@ -1593,26 +1628,6 @@ ApplicationWindow {
 
             }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
             // ==================== PLAYBACK CONTROLS (BOTTOM BAR) ====================
             Rectangle {
                 Layout.fillWidth: true
@@ -2165,7 +2180,7 @@ ApplicationWindow {
 
                 onAccepted: {
                     if (text.trim().length > 0) {
-                        savePlaylist()
+                       saveAsM3UPlaylist
                     }
                 }
             }
@@ -2198,31 +2213,53 @@ ApplicationWindow {
                 }
             }
         }
-
         function savePlaylist() {
             var playlistName = playlistNameInput.text.trim()
             if (playlistName.length > 0) {
+                // Add .m3u extension if not present
                 if (!playlistName.toLowerCase().endsWith(".m3u")) {
                     playlistName += ".m3u"
                 }
 
-                console.log("Saving playlist as:", playlistName)
+                // Get the application directory path
+                var appDir = Qt.application.arguments[0]
+                var lastSlash = Math.max(appDir.lastIndexOf('/'), appDir.lastIndexOf('\\'))
+                if (lastSlash > 0) {
+                    appDir = appDir.substring(0, lastSlash)
+                }
+
+                // Create full file path
+                var fullPath = appDir + "/" + playlistName
+
+                console.log("Saving playlist to:", fullPath)
+
+                // Actually save the playlist
+                var success = libraryModel.saveAsM3UPlaylist(fullPath)
 
                 savePlaylistDialog.close()
                 playlistNameInput.text = ""
-                saveConfirmationPopup.open()
+
+                if (success) {
+                    saveConfirmationPopup.savedPath = fullPath
+                    saveConfirmationPopup.open()
+                } else {
+                    saveErrorPopup.open()
+                }
             }
         }
     }
 
     // Save Confirmation
+    // Save Confirmation
     Popup {
         id: saveConfirmationPopup
         anchors.centerIn: Overlay.overlay
-        width: 380
-        height: 160
+        width: 450
+        height: 200
         modal: true
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+
+        property string savedPath: ""
 
         background: Rectangle {
             color: root.surfaceColor
@@ -2233,7 +2270,10 @@ ApplicationWindow {
 
         ColumnLayout {
             anchors.centerIn: parent
-            spacing: 20
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.margins: 20
+            spacing: 15
 
             Label {
                 text: "✅"
@@ -2249,12 +2289,98 @@ ApplicationWindow {
                 color: root.textColor
                 Layout.alignment: Qt.AlignHCenter
             }
+
+            Label {
+                Layout.fillWidth: true
+                text: qsTr("Saved to: %1").arg(saveConfirmationPopup.savedPath)
+                font.pixelSize: 11
+                color: root.textSecondaryColor
+                wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                horizontalAlignment: Text.AlignHCenter
+            }
+
+            Button {
+                Layout.alignment: Qt.AlignHCenter
+                text: qsTr("Open Folder")
+                implicitHeight: 32
+
+                onClicked: {
+                    Qt.openUrlExternally("file:///" + saveConfirmationPopup.savedPath.substring(0, saveConfirmationPopup.savedPath.lastIndexOf('/')))
+                    saveConfirmationPopup.close()
+                }
+
+                background: Rectangle {
+                    radius: 6
+                    color: parent.pressed ? root.primaryColor : root.surfaceLightColor
+                    border.color: root.primaryColor
+                    border.width: 1
+                }
+
+                contentItem: Text {
+                    text: parent.text
+                    color: root.textColor
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                    font.pixelSize: 11
+                }
+            }
         }
 
         Timer {
-            interval: 2000
+            interval: 5000
             running: saveConfirmationPopup.opened
             onTriggered: saveConfirmationPopup.close()
+        }
+    }
+
+    //Save error popup
+    // Save Error Popup
+    Popup {
+        id: saveErrorPopup
+        anchors.centerIn: Overlay.overlay
+        width: 380
+        height: 160
+        modal: true
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+
+        background: Rectangle {
+            color: root.surfaceColor
+            radius: 16
+            border.color: "#F44336"
+            border.width: 2
+        }
+
+        ColumnLayout {
+            anchors.centerIn: parent
+            spacing: 20
+
+            Label {
+                text: "❌"
+                font.pixelSize: 40
+                color: "#F44336"
+                Layout.alignment: Qt.AlignHCenter
+            }
+
+            Label {
+                text: qsTr("Failed to save playlist")
+                font.pixelSize: 16
+                font.bold: true
+                color: root.textColor
+                Layout.alignment: Qt.AlignHCenter
+            }
+
+            Label {
+                text: qsTr("Please check file permissions and try again")
+                font.pixelSize: 12
+                color: root.textSecondaryColor
+                Layout.alignment: Qt.AlignHCenter
+            }
+        }
+
+        Timer {
+            interval: 3000
+            running: saveErrorPopup.opened
+            onTriggered: saveErrorPopup.close()
         }
     }
 

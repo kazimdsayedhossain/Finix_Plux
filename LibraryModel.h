@@ -54,6 +54,8 @@ public:
     Q_INVOKABLE void sortBy(const QString& field);
     Q_INVOKABLE void clearLibrary();
     Q_INVOKABLE QString getTrackPath(int index) const;
+    Q_INVOKABLE bool saveAsM3UPlaylist(const QString& filePath);
+
 
 signals:
     void statsChanged();
