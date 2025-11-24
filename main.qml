@@ -1779,7 +1779,7 @@ ApplicationWindow {
                                     } else {
                                         // Otherwise, play next from queue
                                         console.log("Playing next track from queue")
-                                        audioController.playNext()
+                                        void playNextInLibrary();
                                     }
                                 }
 

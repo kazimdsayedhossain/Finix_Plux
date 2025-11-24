@@ -108,7 +108,7 @@ public:
 
     // Queue management
     Q_INVOKABLE void addToQueue(const QString& filePath);
-    Q_INVOKABLE void playNext();
+    Q_INVOKABLE void playNextInLibrary();
     Q_INVOKABLE int queueSize() const;
 
 
@@ -151,7 +151,7 @@ private:
     void setTrackInfo(const QString &title, const QString &artist);
     void applyVolumeEffects();
     void startFadeIn();
-    void playNextInLibrary();
+    // void playNextInLibrary();
 
     // ==================== Member Variables ====================
 

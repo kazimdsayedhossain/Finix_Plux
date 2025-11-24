@@ -469,21 +469,21 @@ void AudioController::addToQueue(const QString& filePath)
     }
 }
 
-void AudioController::playNext()
-{
-    try {
-        if (!m_queue.isEmpty()) {
-            Track nextTrack = m_queue.pop();
-            openFile(nextTrack.path());
-            qDebug() << "Playing next from queue:" << nextTrack.title();
-        } else {
-            qDebug() << "Queue is empty";
-        }
-    }
-    catch (const std::exception& e) {
-        qWarning() << "Failed to play next:" << e.what();
-    }
-}
+// void AudioController::playNext()
+// {
+//     try {
+//         if (!m_queue.isEmpty()) {
+//             Track nextTrack = m_queue.pop();
+//             openFile(nextTrack.path());
+//             qDebug() << "Playing next from queue:" << nextTrack.title();
+//         } else {
+//             qDebug() << "Queue is empty";
+//         }
+//     }
+//     catch (const std::exception& e) {
+//         qWarning() << "Failed to play next:" << e.what();
+//     }
+// }
 
 int AudioController::queueSize() const
 {
