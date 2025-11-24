@@ -163,9 +163,9 @@ ApplicationWindow {
 
                     SidebarButton {
                         icon: "⚙️"
-                        label: qsTr("Settings")
-                        active: stackView.currentItem && stackView.currentItem.objectName === "settingsPage"
-                        onClicked: stackView.replace(settingsPage)
+                        label: qsTr("About")
+                        active: stackView.currentItem && stackView.currentItem.objectName === "aboutpage"
+                        onClicked: stackView.replace(aboutpage)
                     }
                 }
 
@@ -1112,31 +1112,31 @@ ApplicationWindow {
 
 
 
-                // ==================== SETTINGS PAGE ====================
+                // ==================== About PAGE ====================
 
                 Component {
-                    id: settingsPage
+                    id: aboutpage
 
                     Rectangle {
-                        objectName: "settingsPage"
+                        objectName: "aboutpage"
                         color: root.backgroundColor
 
                         Flickable {
                             anchors.fill: parent
                             anchors.margins: 30
-                            contentHeight: settingsContent.height
+                            contentHeight: aboutContent.height
                             contentWidth: width
                             clip: true
                             boundsBehavior: Flickable.StopAtBounds
 
                             ColumnLayout {
-                                id: settingsContent
+                                id: aboutContent
                                 width: parent.width
                                 spacing: 20
 
                                 // Header
                                 Label {
-                                    text: qsTr("Settings & About")
+                                    text: qsTr("About")
                                     font.pixelSize: 32
                                     font.bold: true
                                     color: root.textColor
@@ -2588,8 +2588,8 @@ ApplicationWindow {
         }
     }
 
-    // Settings Card
-    component SettingsCard: Rectangle {
+    // About Card
+    component AboutCard: Rectangle {
         property string title: ""
 
         Layout.fillWidth: true
