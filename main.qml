@@ -1614,8 +1614,6 @@ ApplicationWindow {
 
 
             // ==================== PLAYBACK CONTROLS (BOTTOM BAR) ====================
-            // Replace the existing playback controls section with this fixed version
-
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 120
@@ -1745,48 +1743,100 @@ ApplicationWindow {
 
                         Item { Layout.fillWidth: true }
 
-                        // Playback Controls (Center)
+                        // Playback Controls (Center) - ALL BUTTONS FIXED
                         RowLayout {
                             Layout.alignment: Qt.AlignCenter
                             spacing: 15
 
-                            // Previous/Restart Button
-                            ControlButton {
+                            // Previous Button - FIXED WITH SMART LOGIC
+                            Button {
                                 text: "⏮"
-                                onClicked: audioController.seek(0)
+                                implicitWidth: 44
+                                implicitHeight: 44
                                 enabled: audioController.duration > 0
-                            }
-
-                            // Play/Pause Button
-                            ControlButton {
-                                text: audioController.isPlaying ? "⏸" : "▶"
-                                primary: true
-                                onClicked: audioController.isPlaying ? audioController.pause() : audioController.play()
-                                enabled: audioController.duration > 0
-                            }
-
-                            // Next Button - FIXED: Now properly handles library playback
-                            ControlButton {
-                                text: "⏭"
-                                // Enable if either queue has items OR library playback is active
-                                enabled: audioController.queueSize() > 0 || audioController.libraryPlaybackEnabled
 
                                 onClicked: {
-                                    // If library playback mode is enabled, play next from library
                                     if (audioController.libraryPlaybackEnabled) {
-                                        console.log("Playing next track from library")
-                                        audioController.playNextInLibrary()
+                                        // Smart previous: go to previous track or restart
+                                        audioController.playPreviousInLibrary()
                                     } else {
-                                        // Otherwise, play next from queue
-                                        console.log("Playing next track from queue")
-                                        void playNextInLibrary();
+                                        // Just restart current track
+                                        audioController.seek(0)
                                     }
                                 }
 
-                                // Visual feedback: different color when library mode is active
+                                background: Rectangle {
+                                    radius: 22
+                                    color: parent.pressed ? root.surfaceLightColor : "transparent"
+                                    border.color: root.textSecondaryColor
+                                    border.width: 1
+                                }
+
                                 contentItem: Text {
                                     text: parent.text
-                                    color: audioController.libraryPlaybackEnabled ? root.accentColor : root.textColor
+                                    color: parent.enabled ?
+                                           (audioController.libraryPlaybackEnabled ? root.accentColor : root.textColor) :
+                                           root.textSecondaryColor
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                    font.pixelSize: 16
+                                }
+                            }
+
+                            // Play/Pause Button
+                            Button {
+                                text: audioController.isPlaying ? "⏸" : "▶"
+                                implicitWidth: 56
+                                implicitHeight: 56
+                                enabled: audioController.duration > 0
+
+                                onClicked: {
+                                    if (audioController.isPlaying) {
+                                        audioController.pause()
+                                    } else {
+                                        audioController.play()
+                                    }
+                                }
+
+                                background: Rectangle {
+                                    radius: 28
+                                    color: parent.enabled ?
+                                           (parent.pressed ? Qt.lighter(root.primaryColor, 1.2) : root.primaryColor) :
+                                           root.surfaceLightColor
+                                }
+
+                                contentItem: Text {
+                                    text: parent.text
+                                    color: parent.enabled ? "white" : root.textSecondaryColor
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                    font.pixelSize: 20
+                                }
+                            }
+
+                            // Next Button
+                            Button {
+                                text: "⏭"
+                                implicitWidth: 44
+                                implicitHeight: 44
+                                enabled: audioController.libraryPlaybackEnabled
+
+                                onClicked: {
+                                    if (audioController.libraryPlaybackEnabled) {
+                                        audioController.playNextInLibrary()
+                                    }
+                                }
+
+                                background: Rectangle {
+                                    radius: 22
+                                    color: parent.pressed ? root.surfaceLightColor : "transparent"
+                                    border.color: root.textSecondaryColor
+                                    border.width: 1
+                                }
+
+                                contentItem: Text {
+                                    text: parent.text
+                                    color: parent.enabled ? root.accentColor : root.textSecondaryColor
                                     horizontalAlignment: Text.AlignHCenter
                                     verticalAlignment: Text.AlignVCenter
                                     font.pixelSize: 16
@@ -1853,6 +1903,23 @@ ApplicationWindow {
                                 Layout.preferredWidth: 40
                             }
                         }
+                    }
+                }
+
+                // Library Playback Mode Indicator
+                Rectangle {
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: 3
+                    color: root.accentColor
+                    visible: audioController.libraryPlaybackEnabled
+
+                    SequentialAnimation on opacity {
+                        running: audioController.libraryPlaybackEnabled
+                        loops: Animation.Infinite
+                        NumberAnimation { from: 0.3; to: 1.0; duration: 800 }
+                        NumberAnimation { from: 1.0; to: 0.3; duration: 800 }
                     }
                 }
             }

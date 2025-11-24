@@ -110,6 +110,7 @@ public:
     Q_INVOKABLE void addToQueue(const QString& filePath);
     Q_INVOKABLE void playNextInLibrary();
     Q_INVOKABLE int queueSize() const;
+    Q_INVOKABLE void playPreviousInLibrary();
 
 
 

@@ -581,3 +581,37 @@ void AudioController::onErrorOccurred(QMediaPlayer::Error error, const QString &
     emit mediaStatusChanged();
 }
 
+void AudioController::playPreviousInLibrary()
+{
+    // If not in library playback mode, just restart current track
+    if (!m_libraryPlaybackEnabled || m_libraryQueue.empty()) {
+        qDebug() << "Library playback disabled or queue empty - restarting track";
+        seek(0);
+        return;
+    }
+
+    // Check if we're at the beginning of the song (< 3 seconds)
+    // If yes, go to previous track. If no, restart current track
+    if (position() > 3000) {
+        qDebug() << "More than 3 seconds played - restarting current track";
+        seek(0);
+        return;
+    }
+
+    // Go to previous track in library
+    m_currentLibraryIndex--;
+
+    // Check if we've gone before the first track
+    if (m_currentLibraryIndex < 0) {
+        qDebug() << "Already at first track in library - restarting current track";
+        m_currentLibraryIndex = 0;
+        seek(0);
+        return;
+    }
+
+    // Play previous track
+    QString previousTrack = m_libraryQueue[m_currentLibraryIndex];
+    qDebug() << "Playing previous track:" << (m_currentLibraryIndex + 1)
+             << "/" << m_libraryQueue.size();
+    openFile(previousTrack);
+}
