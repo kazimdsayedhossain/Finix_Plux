@@ -70,19 +70,19 @@ Finix Player is a sophisticated music player application that demonstrates advan
 <div align="center">
 
 ### Home Screen
-![Home Screen](screenshots/home.png)
+![Home Screen](assests/About.png)
 *Modern interface with now playing display*
 
 ### Audio Effects Panel
-![Effects Panel](screenshots/effects.png)
+![Effects Panel](assests/effects.png)
 *Professional-grade real-time audio effects*
 
 ### Music Library
-![Music Library](screenshots/library.png)
+![Music Library](assests/library.png)
 *Organized library with smart search and filtering*
 
 ### Settings Page
-![Settings](screenshots/settings.png)
+![Settings](assests/settings.png)
 *Comprehensive settings and keyboard shortcuts*
 
 </div>
@@ -216,52 +216,6 @@ FinixPlayer/
 └── BassBoostEffect    # Bass enhancement effect
 ```
 
-### Advanced C++ Concepts Demonstrated
-
-1. **Object-Oriented Programming**
-   - Encapsulation with private/protected members
-   - Inheritance hierarchies (AudioEffect family)
-   - Polymorphism with virtual functions
-   - Abstract base classes with pure virtual functions
-
-2. **Modern C++ Features**
-   - Smart pointers (`std::unique_ptr`, `std::shared_ptr`)
-   - Move semantics and rvalue references
-   - Lambda expressions and closures
-   - Range-based for loops
-   - `std::optional` for cache returns
-
-3. **Template Programming**
-   - Class templates (`CircularBuffer<T>`, `LRUCache<K,V>`)
-   - Function templates (AudioUtils namespace)
-   - Template specialization
-
-4. **Exception Handling**
-   - Custom exception hierarchy
-   - RAII principles
-   - Exception safety guarantees
-
-5. **STL Containers**
-   - `std::vector`, `std::map`, `std::set`
-   - `std::list` for LRU cache
-   - Algorithm usage (`std::sort`, `std::remove_if`)
-
-6. **Friend Functions & Classes**
-   - `PlaylistManager` as friend of `Track`
-   - Friend functions for specialized access
-
-7. **Operator Overloading**
-   - Comparison operators
-   - Stream insertion operator
-   - Arithmetic operators for playlists
-   - Subscript operator
-
-8. **Static Members**
-   - Static member variables for tracking
-   - Static member functions for utilities
-
----
-
 ## 📋 Technical Specifications
 
 ### System Requirements
@@ -364,15 +318,6 @@ cmake -DCMAKE_CXX_FLAGS="-Wall -Wextra -Wpedantic" ..
 
 ---
 
-## 🤝 Contributing
-
-Contributions are welcome! Please follow these guidelines:
-
-1. **Fork the repository**
-2. **Create a feature branch** (`git checkout -b feature/AmazingFeature`)
-3. **Commit your changes** (`git commit -m 'Add some AmazingFeature'`)
-4. **Push to the branch** (`git push origin feature/AmazingFeature`)
-5. **Open a Pull Request**
 
 ### Development Guidelines
 
@@ -408,7 +353,7 @@ See [LICENSE](LICENSE) file for full details.
 
 ### About the Developer
 
-Passionate about creating intuitive and powerful software solutions. Specializes in C++ development, Qt framework, and audio processing applications. This project represents a comprehensive demonstration of advanced programming concepts and modern software architecture.
+Passionate about creating intuitive and powerful software solutions. Specializes in C++ development, Qt framework, and audio processing applications.
 
 ### Development Journey
 
@@ -448,8 +393,7 @@ Finix Player was developed as an educational project to explore:
 ### Get in Touch
 
 - **Email**: [kazimdsayedhossain@outlook.com](mailto:kazimdsayedhossain@outlook.com)
-- **Project Issues**: [GitHub Issues](https://github.com/yourusername/finix-player/issues)
-- **Feature Requests**: [GitHub Discussions](https://github.com/yourusername/finix-player/discussions)
+- **Project Issues**: [GitHub Issues](https://github.com/kazimdsayedhossain/finix-player/issues)
 
 ### Support the Project
 
@@ -480,22 +424,8 @@ If you find Finix Player useful, please consider:
 
 ---
 
-## 📊 Project Statistics
-
-- **Lines of Code**: ~8,000
-- **Development Time**: 6 months
-- **Languages**: C++ (75%), QML (20%), CMake (5%)
-- **Classes**: 15+
-- **Design Patterns**: 8+
-- **Files**: 30+
-
----
-
 <div align="center">
 
-**Made with ❤️ and Qt**
-
-*Empowering students to build professional-grade applications*
 
 Copyright © 2025 Kazi MD. Sayed Hossain
 
