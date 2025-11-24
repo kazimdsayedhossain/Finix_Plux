@@ -427,7 +427,7 @@ If you find Finix Player useful, please consider:
 <div align="center">
 
 
-Copyright © 2025 Kazi MD. Sayed Hossain
+(Copyright free) 2025 Kazi MD. Sayed Hossain
 
 [⬆ Back to Top](#-finix-player)
 
