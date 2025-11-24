@@ -198,24 +198,6 @@ Navigate to **Audio Effects** page to access:
 - **Template Pattern**: Generic audio processing utilities
 - **Strategy Pattern**: Pluggable audio effect chain
 
-### Key Components
-
-```
-FinixPlayer/
-├── AudioController      # Main playback controller
-├── Track               # Audio track metadata and operations
-├── MusicLibrary        # Singleton library manager
-├── LibraryModel        # Qt Model for QML integration
-├── Playlist            # Playlist management
-├── PlaylistManager     # Friend class for playlist operations
-├── CircularBuffer      # Template-based queue implementation
-├── LRUCache           # Template-based caching system
-├── AudioEffect        # Base class for audio effects
-├── EqualizerEffect    # 10-band equalizer implementation
-├── ReverbEffect       # Reverb audio effect
-└── BassBoostEffect    # Bass enhancement effect
-```
-
 ## 📋 Technical Specifications
 
 ### System Requirements
