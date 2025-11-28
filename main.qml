@@ -2,7 +2,6 @@ import QtQuick 2.15
 import QtQuick.Controls 2.15
 import QtQuick.Layouts 1.15
 import Qt.labs.platform 1.1
-import Qt5Compat.GraphicalEffects
 import com.finix.audioplayer 1.0
 
 ApplicationWindow {
@@ -12,27 +11,74 @@ ApplicationWindow {
     height: 900
     minimumWidth: 1200
     minimumHeight: 700
-    title: qsTr("Finix Player - Modern Music Player")
+    title: qsTr("Finix Player - Modern Audio Experience")
+    color: "#0F0F23" // Deep space background
 
-    // Color scheme
-    readonly property color backgroundColor: "#0A0E27"
-    readonly property color surfaceColor: "#1A1F3A"
-    readonly property color surfaceLightColor: "#252B4A"
-    readonly property color primaryColor: "#3D5AFE"
-    readonly property color accentColor: "#FF4081"
-    readonly property color textColor: "#E0E6F0"
-    readonly property color textSecondaryColor: "#8891A8"
+    // ==================== INNOVATIVE DESIGN SYSTEM ====================
+    QtObject {
+        id: design
 
-    // Audio Controller
+        // Cosmic Color Palette
+        readonly property color background: "#0F0F23"
+        readonly property color surface: "#1A1A2E"
+        readonly property color surfaceElevated: "#16213E"
+        readonly property color surfaceOverlay: "#0F3460"
+        readonly property color accent: "#7C3AED"
+        readonly property color accentBright: "#9333EA"
+        readonly property color success: "#48BB78"
+        readonly property color warning: "#ED8936"
+        readonly property color error: "#FC8181"
+
+        // Text Hierarchy
+        readonly property color textPrimary: "#F7FAFC"
+        readonly property color textSecondary: "#A0AEC0"
+        readonly property color textMuted: "#718096"
+
+        // Gradients
+        readonly property var primaryGradient: Gradient {
+            GradientStop { position: 0.0; color: design.accent }
+            GradientStop { position: 1.0; color: design.accentBright }
+        }
+
+        readonly property var surfaceGradient: Gradient {
+            GradientStop { position: 0.0; color: design.surface }
+            GradientStop { position: 0.7; color: design.surfaceElevated }
+        }
+
+        // Spacing & Radius
+        readonly property int space: 16
+        readonly property int spaceHalf: 8
+        readonly property int spaceDouble: 32
+        readonly property int radius: 16
+        readonly property int radiusSmall: 8
+        readonly property int radiusLarge: 24
+
+        // Typography
+        readonly property int fontSize: 14
+        readonly property int fontSizeLarge: 18
+        readonly property int fontSizeTitle: 24
+        readonly property int fontSizeHeading: 32
+        readonly property int fontSizeDisplay: 48
+
+        // Shadows
+        readonly property int shadowOffset: 4
+        readonly property real shadowOpacity: 0.3
+    }
+
+    // ==================== AUDIO CONTROLLER ====================
     AudioController {
         id: audioController
     }
 
-    // Library Model
+    // ==================== LIBRARY MODEL ====================
     LibraryModel {
         id: libraryModel
+    }
 
-        onScanProgressChanged: {
+    // Library Model Connections
+    Connections {
+        target: libraryModel
+        function onScanProgressChanged(current, total) {
             scanProgressDialog.currentProgress = current
             scanProgressDialog.totalProgress = total
 
@@ -41,49 +87,48 @@ ApplicationWindow {
                 scanCloseTimer.start()
             }
         }
-    }
-
-    function savePlaylist() {
-var playlistName = playlistNameInput.text.trim()
-if (playlistName.length > 0) {
-    // Add .m3u extension if not present
-    if (!playlistName.toLowerCase().endsWith(".m3u")) {
-        playlistName += ".m3u"
-    }
-
-    // Get the application directory path
-    var appDir = Qt.application.arguments[0]
-                 var lastSlash = Math.max(appDir.lastIndexOf('/'), appDir.lastIndexOf('\\'))
-          if (lastSlash > 0) {
-        appDir = appDir.substring(0, lastSlash)
-    }
-
-    // Create full file path
-    var fullPath = appDir + "/" + playlistName
-
-                                          console.log("Saving playlist to:", fullPath)
-
-                                  // Actually save the playlist - FIXED: Use libraryModel object
-                                  var success = libraryModel.saveAsM3UPlaylist(fullPath)
-
-          savePlaylistDialog.close()
-          playlistNameInput.text = ""
-
-        if (success) {
-        saveConfirmationPopup.savedPath = fullPath
-                                              saveConfirmationPopup.open()
-    } else {
-        saveErrorPopup.open()
-    }
-}
-}
-
-    Connections {
-        target: libraryModel
 
         function onStatsChanged() {
-            console.log("Library stats updated")
             updateLibraryQueue()
+        }
+    }
+
+    // Audio Controller Connections for UI updates
+    Connections {
+        target: audioController
+        function onTrackTitleChanged() {
+            // Close scan dialog when a track starts playing
+            if (scanProgressDialog && scanProgressDialog.opened) {
+                scanProgressDialog.close()
+            }
+        }
+    }
+
+    // Timer to close scan dialog when complete
+    Timer {
+        id: scanCloseTimer
+        interval: 500
+        onTriggered: {
+            scanProgressDialog.close()
+            libraryModel.refresh()
+        }
+    }
+
+    // ==================== UTILITY FUNCTIONS ====================
+    function formatDuration(milliseconds) {
+        if (milliseconds <= 0 || isNaN(milliseconds)) return "0:00"
+
+        var totalSeconds = Math.floor(milliseconds / 1000)
+        var hours = Math.floor(totalSeconds / 3600)
+        var minutes = Math.floor((totalSeconds % 3600) / 60)
+        var seconds = totalSeconds % 60
+
+        if (hours > 0) {
+            return hours + ":" +
+                   (minutes < 10 ? "0" : "") + minutes + ":" +
+                   (seconds < 10 ? "0" : "") + seconds
+        } else {
+            return minutes + ":" + (seconds < 10 ? "0" : "") + seconds
         }
     }
 
@@ -103,412 +148,627 @@ if (playlistName.length > 0) {
         console.log("Updated library queue with", trackPaths.length, "tracks")
     }
 
+    // ==================== CUSTOM ICON COMPONENT ====================
+    component NeonIcon: Canvas {
+        property string iconName: ""
+        property color glowColor: design.accent
+        property real size: 24
 
-    // Timer to close scan dialog when complete
-    Timer {
-        id: scanCloseTimer
-        interval: 500
-        onTriggered: {
-            scanProgressDialog.close()
-            libraryModel.refresh()
-        }
-    }
+        width: size
+        height: size
 
-    // Background
-    Rectangle {
-        anchors.fill: parent
-        color: root.backgroundColor
-    }
+        onPaint: {
+            var ctx = getContext("2d");
+            ctx.clearRect(0, 0, width, height);
+            ctx.strokeStyle = glowColor;
+            ctx.lineWidth = 2;
+            ctx.lineCap = "round";
+            ctx.lineJoin = "round";
+            ctx.shadowColor = glowColor;
+            ctx.shadowBlur = 8;
 
-    // Main Layout
-    RowLayout {
-        anchors.fill: parent
-        spacing: 0
+            switch (iconName) {
+                case "music":
+                    ctx.beginPath();
+                    ctx.arc(8, 6, 3, 0, Math.PI * 2);
+                    ctx.moveTo(11, 6);
+                    ctx.lineTo(11, 18);
+                    ctx.lineTo(5, 14);
+                    ctx.stroke();
+                    break;
 
-        // ==================== LEFT SIDEBAR ====================
-        Rectangle {
-            Layout.preferredWidth: 280
-            Layout.fillHeight: true
-            color: root.surfaceColor
+                case "play":
+                    ctx.beginPath();
+                    ctx.moveTo(6, 4);
+                    ctx.lineTo(18, 12);
+                    ctx.lineTo(6, 20);
+                    ctx.closePath();
+                    ctx.fillStyle = glowColor;
+                    ctx.fill();
+                    break;
 
-            ColumnLayout {
-                anchors.fill: parent
-                spacing: 0
+                case "pause":
+                    ctx.fillStyle = glowColor;
+                    ctx.fillRect(6, 4, 4, 16);
+                    ctx.fillRect(14, 4, 4, 16);
+                    break;
 
-                // Logo Section
-                Item {
-                    Layout.fillWidth: true
-                    Layout.preferredHeight: 120
+                case "previous":
+                    ctx.beginPath();
+                    ctx.moveTo(16, 4);
+                    ctx.lineTo(8, 12);
+                    ctx.lineTo(16, 20);
+                    ctx.moveTo(4, 4);
+                    ctx.lineTo(4, 20);
+                    ctx.stroke();
+                    break;
 
-                    ColumnLayout {
-                        anchors.centerIn: parent
-                        spacing: 8
+                case "next":
+                    ctx.beginPath();
+                    ctx.moveTo(8, 4);
+                    ctx.lineTo(16, 12);
+                    ctx.lineTo(8, 20);
+                    ctx.moveTo(20, 4);
+                    ctx.lineTo(20, 20);
+                    ctx.stroke();
+                    break;
 
-                        Label {
-                            Layout.alignment: Qt.AlignHCenter
-                            text: "🎵"
-                            font.pixelSize: 32
-                        }
+                case "folder":
+                    ctx.beginPath();
+                    ctx.rect(4, 8, 16, 10);
+                    ctx.moveTo(4, 8);
+                    ctx.lineTo(8, 8);
+                    ctx.lineTo(10, 6);
+                    ctx.lineTo(16, 6);
+                    ctx.lineTo(18, 8);
+                    ctx.stroke();
+                    break;
 
-                        Label {
-                            Layout.alignment: Qt.AlignHCenter
-                            text: qsTr("Finix Player")
-                            font.pixelSize: 22
-                            font.bold: true
-                            color: root.textColor
-                        }
-                    }
-                }
+                case "youtube":
+                    ctx.fillStyle = glowColor;
+                    ctx.fillRect(4, 6, 16, 12);
+                    ctx.fillStyle = design.background;
+                    ctx.beginPath();
+                    ctx.moveTo(8, 9);
+                    ctx.lineTo(16, 12);
+                    ctx.lineTo(8, 15);
+                    ctx.closePath();
+                    ctx.fill();
+                    break;
 
-                // Separator
-                Rectangle {
-                    Layout.fillWidth: true
-                    Layout.leftMargin: 20
-                    Layout.rightMargin: 20
-                    height: 1
-                    color: root.surfaceLightColor
-                }
+                case "library":
+                    ctx.strokeRect(5, 4, 6, 16);
+                    ctx.strokeRect(11, 4, 6, 16);
+                    ctx.strokeRect(17, 4, 4, 16);
+                    break;
 
-                // Navigation Menu - FIXED: Properly visible menu items
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    Layout.topMargin: 20
-                    spacing: 8
+                case "effects":
+                    ctx.beginPath();
+                    ctx.moveTo(4, 12);
+                    ctx.lineTo(6, 8);
+                    ctx.lineTo(8, 16);
+                    ctx.lineTo(10, 6);
+                    ctx.lineTo(12, 14);
+                    ctx.lineTo(14, 10);
+                    ctx.lineTo(16, 18);
+                    ctx.lineTo(18, 8);
+                    ctx.lineTo(20, 12);
+                    ctx.stroke();
+                    break;
 
-                    SidebarButton {
-                        icon: "🏠"
-                        label: qsTr("Home")
-                        active: stackView.currentItem && stackView.currentItem.objectName === "homePage"
-                        onClicked: stackView.replace(homePage)
-                    }
+                case "equalizer":
+                    ctx.beginPath();
+                    ctx.moveTo(4, 16);
+                    ctx.lineTo(4, 12);
+                    ctx.lineTo(6, 12);
+                    ctx.lineTo(6, 8);
+                    ctx.lineTo(8, 8);
+                    ctx.lineTo(8, 16);
+                    ctx.moveTo(10, 16);
+                    ctx.lineTo(10, 6);
+                    ctx.lineTo(12, 6);
+                    ctx.lineTo(12, 16);
+                    ctx.moveTo(14, 16);
+                    ctx.lineTo(14, 10);
+                    ctx.lineTo(16, 10);
+                    ctx.lineTo(16, 4);
+                    ctx.lineTo(18, 4);
+                    ctx.lineTo(18, 16);
+                    ctx.stroke();
+                    break;
 
-                    SidebarButton {
-                        icon: "🎚️"
-                        label: qsTr("Audio Effects")
-                        active: stackView.currentItem && stackView.currentItem.objectName === "effectsPage"
-                        onClicked: stackView.replace(effectsPage)
-                    }
+                case "settings":
+                    ctx.beginPath();
+                    ctx.arc(12, 12, 8, 0, Math.PI * 2);
+                    ctx.moveTo(12, 6);
+                    ctx.lineTo(12, 8);
+                    ctx.moveTo(18, 12);
+                    ctx.lineTo(16, 12);
+                    ctx.moveTo(12, 18);
+                    ctx.lineTo(12, 16);
+                    ctx.moveTo(6, 12);
+                    ctx.lineTo(8, 12);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.arc(12, 12, 3, 0, Math.PI * 2);
+                    ctx.stroke();
+                    break;
 
-                    SidebarButton {
-                        icon: "📚"
-                        label: qsTr("Library")
-                        active: stackView.currentItem && stackView.currentItem.objectName === "libraryPage"
-                        onClicked: stackView.replace(libraryPage)
-                    }
+                case "search":
+                    ctx.beginPath();
+                    ctx.arc(9, 9, 6, 0, Math.PI * 2);
+                    ctx.moveTo(15, 15);
+                    ctx.lineTo(19, 19);
+                    ctx.stroke();
+                    break;
 
-                    SidebarButton {
-                        icon: "⚙️"
-                        label: qsTr("About")
-                        active: stackView.currentItem && stackView.currentItem.objectName === "aboutpage"
-                        onClicked: stackView.replace(aboutpage)
-                    }
-                }
+                case "save":
+                    ctx.strokeRect(5, 6, 14, 12);
+                    ctx.strokeRect(7, 4, 10, 4);
+                    ctx.fillRect(8, 14, 8, 2);
+                    break;
 
-                Item { Layout.fillHeight: true }
+                case "close":
+                    ctx.beginPath();
+                    ctx.moveTo(8, 8);
+                    ctx.lineTo(16, 16);
+                    ctx.moveTo(16, 8);
+                    ctx.lineTo(8, 16);
+                    ctx.stroke();
+                    break;
 
-                // Library Stats
-                Rectangle {
-                    Layout.fillWidth: true
-                    Layout.leftMargin: 20
-                    Layout.rightMargin: 20
-                    Layout.bottomMargin: 20
-                    Layout.preferredHeight: 100
-                    color: root.surfaceLightColor
-                    radius: 12
-
-                    ColumnLayout {
-                        anchors.fill: parent
-                        anchors.margins: 16
-                        spacing: 8
-
-                        Label {
-                            text: qsTr("📊 Library Stats")
-                            font.pixelSize: 14
-                            font.bold: true
-                            color: root.textColor
-                        }
-
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 15
-
-                            ColumnLayout {
-                                spacing: 2
-
-                                Label {
-                                    text: libraryModel.totalTracks
-                                    font.pixelSize: 18
-                                    font.bold: true
-                                    color: root.primaryColor
-                                }
-
-                                Label {
-                                    text: qsTr("Tracks")
-                                    font.pixelSize: 10
-                                    color: root.textSecondaryColor
-                                }
-                            }
-
-                            ColumnLayout {
-                                spacing: 2
-
-                                Label {
-                                    text: libraryModel.totalArtists
-                                    font.pixelSize: 18
-                                    font.bold: true
-                                    color: root.accentColor
-                                }
-
-                                Label {
-                                    text: qsTr("Artists")
-                                    font.pixelSize: 10
-                                    color: root.textSecondaryColor
-                                }
-                            }
-                        }
-                    }
-                }
+                default:
+                    ctx.beginPath();
+                    ctx.arc(width/2, height/2, width/2 - 1, 0, Math.PI * 2);
+                    ctx.stroke();
             }
         }
 
-        // ==================== MAIN CONTENT AREA ====================
-        ColumnLayout {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            spacing: 0
+        // Force repaint when iconName changes
+        onIconNameChanged: {
+            requestPaint();
+        }
+    }
 
-            // Content Stack
+    // ==================== MAIN CONTENT AREA ====================
+    Rectangle {
+        anchors.fill: parent
+        gradient: Gradient {
+            GradientStop { position: 0.0; color: design.background }
+            GradientStop { position: 1.0; color: "#1a1a2e" }
+        }
+
+        // ==================== TOP NAVIGATION ====================
+        Rectangle {
+            id: topNav
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: 80
+            color: "transparent"
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.margins: design.space
+
+                // App Title
+                Item {
+                    Layout.fillWidth: true
+
+                    ColumnLayout {
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: 2
+
+                        Label {
+                            text: "FINIX"
+                            font.pixelSize: design.fontSizeDisplay
+                            font.bold: true
+                            color: design.accentBright
+                            font.letterSpacing: 2
+                        }
+
+                        Label {
+                            text: "AUDIO EXPERIENCE"
+                            font.pixelSize: design.fontSize
+                            color: design.textMuted
+                            font.letterSpacing: 1
+                        }
+                    }
+                }
+
+                // Navigation Pills
+                RowLayout {
+                    spacing: design.spaceHalf
+
+                    Repeater {
+                        model: [
+                            { name: "home", label: "Home", icon: "music" },
+                            { name: "effects", label: "Effects", icon: "effects" },
+                            { name: "discovery", label: "Discovery", icon: "search" },
+                            { name: "library", label: "Library", icon: "library" },
+                            { name: "about", label: "About", icon: "settings" }
+                        ]
+
+                        Rectangle {
+                            width: 120
+                            height: 50
+                            radius: design.radius
+                            gradient: stackView.currentItem?.objectName === modelData.name ?
+                                     design.primaryGradient : null
+                            color: stackView.currentItem?.objectName === modelData.name ?
+                                   "transparent" : Qt.rgba(design.surfaceOverlay.r, design.surfaceOverlay.g, design.surfaceOverlay.b, 0.5)
+                            border.width: stackView.currentItem?.objectName === modelData.name ? 2 : 0
+                            border.color: design.accentBright
+
+                            RowLayout {
+                                anchors.centerIn: parent
+                                spacing: design.spaceHalf
+
+                                NeonIcon {
+                                    iconName: modelData.icon
+                                    size: 20
+                                    glowColor: stackView.currentItem?.objectName === modelData.name ?
+                                              design.textPrimary : design.accentBright
+                                }
+
+                                Label {
+                                    text: modelData.label
+                                    font.pixelSize: design.fontSize
+                                    font.bold: stackView.currentItem?.objectName === modelData.name
+                                    color: design.textPrimary
+                                }
+                            }
+
+                            MouseArea {
+                                anchors.fill: parent
+                                onClicked: {
+                                    if (modelData.name === "home") stackView.replace(homePage)
+                                    else if (modelData.name === "library") stackView.replace(libraryPage)
+                                    else if (modelData.name === "effects") stackView.replace(effectsPage)
+                                    else if (modelData.name === "discovery") stackView.replace(discoveryPage)
+                                    else if (modelData.name === "about") stackView.replace(aboutPage)
+                                }
+                            }
+                        }
+                    }
+                }
+
+            }
+        }
+
+        // ==================== MAIN CONTENT ====================
+        Item {
+            anchors.top: topNav.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: bottomPlayer.top
+            anchors.margins: design.space
+
             StackView {
                 id: stackView
-                Layout.fillWidth: true
-                Layout.fillHeight: true
+                anchors.fill: parent
                 initialItem: homePage
 
                 // ==================== HOME PAGE ====================
                 Component {
                     id: homePage
 
-                    Rectangle {
-                        objectName: "homePage"
-                        color: root.backgroundColor
+                    Flickable {
+                        objectName: "home"
+                        contentHeight: homeLayout.height + design.spaceDouble
+                        contentWidth: width
+                        clip: true
 
-                        Flickable {
-                            anchors.fill: parent
-                            anchors.margins: 30
-                            contentHeight: homeContent.height
-                            contentWidth: width
-                            clip: true
-                            boundsBehavior: Flickable.StopAtBounds
+                        ColumnLayout {
+                            id: homeLayout
+                            width: parent.width
+                            spacing: design.spaceDouble
 
-                            ColumnLayout {
-                                id: homeContent
-                                width: parent.width
-                                spacing: 25
-
-                                // Header
-                                ColumnLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 8
-
-                                    Label {
-                                        text: qsTr("Welcome to Finix Player")
-                                        font.pixelSize: 32
-                                        font.bold: true
-                                        color: root.textColor
-                                    }
-
-                                    Label {
-                                        text: qsTr("Advanced Music Player with Audio Effects")
-                                        font.pixelSize: 16
-                                        color: root.textSecondaryColor
-                                    }
+                            // Hero Section
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 300
+                                radius: design.radiusLarge
+                                gradient: Gradient {
+                                    GradientStop { position: 0.0; color: Qt.rgba(design.accent.r, design.accent.g, design.accent.b, 0.3) }
+                                    GradientStop { position: 1.0; color: Qt.rgba(design.accentBright.r, design.accentBright.g, design.accentBright.b, 0.1) }
                                 }
+                                border.width: 1
+                                border.color: design.accent
 
-                                // Now Playing Card
-                                Rectangle {
-                                    Layout.fillWidth: true
-                                    Layout.preferredHeight: 400
-                                    color: root.surfaceColor
-                                    radius: 16
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.margins: design.spaceDouble
+                                    spacing: design.spaceDouble
 
+                                    // Welcome Text
                                     ColumnLayout {
-                                        anchors.fill: parent
-                                        anchors.margins: 30
-                                        spacing: 20
+                                        Layout.fillWidth: true
+                                        spacing: design.space
 
                                         Label {
-                                            text: qsTr("🎵 Now Playing")
-                                            font.pixelSize: 20
+                                            text: "Welcome to Finix Player"
+                                            font.pixelSize: design.fontSizeHeading
                                             font.bold: true
-                                            color: root.textColor
+                                            color: design.textPrimary
                                         }
 
-                                        // Album Art
-                                        Rectangle {
-                                            Layout.alignment: Qt.AlignHCenter
-                                            width: 220
-                                            height: 220
-                                            radius: 12
-                                            color: root.surfaceLightColor
-
-                                            Image {
-                                                id: albumArt
-                                                anchors.fill: parent
-                                                anchors.margins: 2
-                                                source: audioController.thumbnailUrl || ""
-                                                fillMode: Image.PreserveAspectCrop
-                                                visible: source !== ""
-                                            }
-
-                                            Label {
-                                                anchors.centerIn: parent
-                                                text: "🎵"
-                                                font.pixelSize: 72
-                                                color: root.textSecondaryColor
-                                                visible: !albumArt.visible
-                                            }
+                                        Label {
+                                            text: "Experience audio like never before with professional-grade effects and seamless playback."
+                                            font.pixelSize: design.fontSizeLarge
+                                            color: design.textSecondary
+                                            wrapMode: Text.WordWrap
+                                            Layout.maximumWidth: 400
                                         }
 
-                                        // Track Info
+                                        // Quick Stats
+                                        RowLayout {
+                                            spacing: design.spaceDouble
+
+                                            Rectangle {
+                                                width: 80
+                                                height: 60
+                                                color: design.surface
+                                                radius: design.radius
+                                                border.width: 1
+                                                border.color: design.surfaceElevated
+
+                                                ColumnLayout {
+                                                    anchors.centerIn: parent
+                                                    spacing: 2
+
+                                                    Label {
+                                                        text: libraryModel.totalTracks
+                                                        font.pixelSize: design.fontSizeLarge
+                                                        font.bold: true
+                                                        color: design.accentBright
+                                                        Layout.alignment: Qt.AlignHCenter
+                                                    }
+
+                                                    Label {
+                                                        text: "Tracks"
+                                                        font.pixelSize: design.fontSize
+                                                        color: design.textMuted
+                                                        Layout.alignment: Qt.AlignHCenter
+                                                    }
+                                                }
+                                            }
+
+                                            Rectangle {
+                                                width: 80
+                                                height: 60
+                                                color: design.surface
+                                                radius: design.radius
+                                                border.width: 1
+                                                border.color: design.surfaceElevated
+
+                                                ColumnLayout {
+                                                    anchors.centerIn: parent
+                                                    spacing: 2
+
+                                                    Label {
+                                                        text: libraryModel.totalArtists
+                                                        font.pixelSize: design.fontSizeLarge
+                                                        font.bold: true
+                                                        color: design.success
+                                                        Layout.alignment: Qt.AlignHCenter
+                                                    }
+
+                                                    Label {
+                                                        text: "Artists"
+                                                        font.pixelSize: design.fontSize
+                                                        color: design.textMuted
+                                                        Layout.alignment: Qt.AlignHCenter
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    // Now Playing Preview
+                                    Rectangle {
+                                        Layout.preferredWidth: 300
+                                        Layout.fillHeight: true
+                                        color: design.surface
+                                        radius: design.radius
+                                        border.width: 1
+                                        border.color: design.surfaceElevated
+                                        visible: audioController.duration > 0
+
                                         ColumnLayout {
-                                            Layout.fillWidth: true
-                                            spacing: 6
+                                            anchors.fill: parent
+                                            anchors.margins: design.space
+                                            spacing: design.space
 
                                             Label {
-                                                Layout.fillWidth: true
-                                                text: audioController.trackTitle || qsTr("No track playing")
-                                                font.pixelSize: 18
+                                                text: "🎵 Now Playing"
+                                                font.pixelSize: design.fontSizeLarge
                                                 font.bold: true
-                                                color: root.textColor
-                                                elide: Text.ElideRight
-                                                horizontalAlignment: Text.AlignHCenter
+                                                color: design.textPrimary
+                                            }
+
+                                            // Album Art
+                                            Rectangle {
+                                                Layout.fillWidth: true
+                                                Layout.preferredHeight: 120
+                                                radius: design.radius
+                                                color: design.surfaceElevated
+
+                                                Image {
+                                                    anchors.fill: parent
+                                                    source: audioController.thumbnailUrl || ""
+                                                    fillMode: Image.PreserveAspectFit
+                                                    smooth: true
+                                                    visible: source !== ""
+                                                }
+
+                                                NeonIcon {
+                                                    anchors.centerIn: parent
+                                                    iconName: "music"
+                                                    size: 48
+                                                    glowColor: design.accentBright
+                                                    visible: !parent.children[0].visible
+                                                }
                                             }
 
                                             Label {
-                                                Layout.fillWidth: true
-                                                text: audioController.trackArtist || qsTr("Unknown Artist")
-                                                font.pixelSize: 14
-                                                color: root.textSecondaryColor
-                                                horizontalAlignment: Text.AlignHCenter
+                                                text: {
+                                                    var fullTitle = audioController.trackTitle || "No track playing";
+                                                    var words = fullTitle.split(" ");
+                                                    if (words.length > 3) {
+                                                        return words.slice(0, 3).join(" ") + "...";
+                                                    }
+                                                    return fullTitle;
+                                                }
+                                                font.pixelSize: design.fontSize
+                                                font.bold: true
+                                                color: design.textPrimary
+                                                elide: Text.ElideRight
+                                                wrapMode: Text.WordWrap
+                                                maximumLineCount: 2
+                                            }
+
+                                            Label {
+                                                text: audioController.trackArtist || "Unknown Artist"
+                                                font.pixelSize: design.fontSize
+                                                color: design.textSecondary
+                                                elide: Text.ElideRight
+                                                wrapMode: Text.WordWrap
+                                                maximumLineCount: 1
                                             }
                                         }
                                     }
                                 }
+                            }
 
-                                // Quick Actions Grid
-                                GridLayout {
-                                    Layout.fillWidth: true
-                                    columns: 3
-                                    rowSpacing: 20
-                                    columnSpacing: 20
+                            // Quick Actions Grid
+                            Label {
+                                text: "Quick Actions"
+                                font.pixelSize: design.fontSizeTitle
+                                font.bold: true
+                                color: design.textPrimary
+                                Layout.leftMargin: design.space
+                            }
 
-                                    ActionCard {
-                                        icon: "📁"
-                                        title: qsTr("Open File")
-                                        description: qsTr("Play local audio files")
-                                        onClicked: fileDialog.open()
-                                    }
+                            GridLayout {
+                                Layout.fillWidth: true
+                                columns: 4
+                                rowSpacing: design.space
+                                columnSpacing: design.space
+                                Layout.leftMargin: design.space
+                                Layout.rightMargin: design.space
 
-                                    ActionCard {
-                                        icon: "🎬"
-                                        title: qsTr("YouTube")
-                                        description: qsTr("Stream from YouTube")
-                                        onClicked: youtubeDialog.open()
-                                    }
-
-                                    ActionCard {
-                                        icon: "📚"
-                                        title: qsTr("Library")
-                                        description: qsTr("Browse your music")
-                                        onClicked: stackView.replace(libraryPage)
-                                    }
+                                ActionTile {
+                                    icon: "Folder"
+                                    title: "Open File"
+                                    description: "Play local audio files"
+                                    onClicked: fileDialog.open()
                                 }
 
-                                Item { Layout.preferredHeight: 20 }
+                                ActionTile {
+                                    icon: "YouTube"
+                                    title: "YouTube"
+                                    description: "Stream from YouTube"
+                                    onClicked: youtubeDialog.open()
+                                }
+
+                                ActionTile {
+                                    icon: "Library"
+                                    title: "Library"
+                                    description: "Browse your music"
+                                    onClicked: stackView.replace(libraryPage)
+                                }
+
+                                ActionTile {
+                                    icon: "Effects"
+                                    title: "Effects"
+                                    description: "Audio customization"
+                                    onClicked: stackView.replace(effectsPage)
+                                }
                             }
+
+                            Item { Layout.preferredHeight: design.space }
                         }
                     }
                 }
 
-                // ==================== AUDIO EFFECTS PAGE ====================
+                // ==================== EFFECTS PAGE ====================
                 Component {
                     id: effectsPage
 
-                    Rectangle {
-                        objectName: "effectsPage"
-                        color: root.backgroundColor
+                    Flickable {
+                        objectName: "effects"
+                        contentHeight: effectsLayout.height + design.spaceDouble
+                        contentWidth: width
+                        clip: true
 
-                        Flickable {
-                            anchors.fill: parent
-                            anchors.margins: 30
-                            contentHeight: effectsContent.height
-                            contentWidth: width
-                            clip: true
-                            boundsBehavior: Flickable.StopAtBounds
+                        ColumnLayout {
+                            id: effectsLayout
+                            width: parent.width
+                            spacing: design.spaceDouble
 
-                            ColumnLayout {
-                                id: effectsContent
-                                width: parent.width
-                                spacing: 20
+                            // Header
+                            Label {
+                                text: "Audio Effects Control Center"
+                                font.pixelSize: design.fontSizeHeading
+                                font.bold: true
+                                color: design.textPrimary
+                                Layout.leftMargin: design.space
+                            }
 
-                                // Header
-                                Label {
-                                    text: qsTr("Audio Effects")
-                                    font.pixelSize: 32
-                                    font.bold: true
-                                    color: root.textColor
-                                }
+                            // Effects Grid
+                            GridLayout {
+                                id: effectsGrid
+                                Layout.fillWidth: true
+                                columns: 2
+                                rowSpacing: 20
+                                columnSpacing: 20
+                                Layout.leftMargin: design.spaceDouble
+                                Layout.rightMargin: design.spaceDouble
 
-                                // Info Banner
+                                // Volume Amplification Card
                                 Rectangle {
                                     Layout.fillWidth: true
-                                    Layout.preferredHeight: 70
-                                    color: "#1E3A5F"
-                                    radius: 12
-                                    border.color: root.primaryColor
+                                    Layout.preferredHeight: 200
+                                    radius: design.radius
+                                    color: design.surface
                                     border.width: 1
-
-                                    RowLayout {
-                                        anchors.fill: parent
-                                        anchors.margins: 20
-                                        spacing: 15
-
-                                        Label {
-                                            text: "⚡"
-                                            font.pixelSize: 24
-                                            color: root.primaryColor
-                                        }
-
-                                        Label {
-                                            Layout.fillWidth: true
-                                            text: qsTr("Real-time audio effects using Qt Multimedia")
-                                            font.pixelSize: 14
-                                            color: root.textColor
-                                            wrapMode: Text.WordWrap
-                                        }
-                                    }
-                                }
-
-                                // Gain Control - FIXED: Proper text alignment
-                                EffectCard {
-                                    Layout.fillWidth: true
-                                    title: qsTr("🔊 Volume Gain")
-                                    description: qsTr("Amplify audio beyond 100% volume")
+                                    border.color: design.surfaceElevated
 
                                     ColumnLayout {
-                                        width: parent.width
+                                        anchors.fill: parent
+                                        anchors.margins: design.space
                                         spacing: 10
 
-                                        // Gain slider with proper alignment
+                                        // Title
+                                        Label {
+                                            text: "Volume Amplification"
+                                            font.pixelSize: design.fontSizeTitle
+                                            font.bold: true
+                                            color: design.textPrimary
+                                            Layout.alignment: Qt.AlignLeft
+                                        }
+
+                                        // Subtitle
+                                        Label {
+                                            text: "Boost audio beyond 100% volume"
+                                            font.pixelSize: design.fontSize
+                                            color: design.textSecondary
+                                            Layout.alignment: Qt.AlignLeft
+                                            wrapMode: Text.WordWrap
+                                        }
+
+                                        // Control
                                         RowLayout {
                                             Layout.fillWidth: true
-                                            spacing: 15
+                                            spacing: design.space
+                                            Layout.alignment: Qt.AlignVCenter
 
                                             Label {
-
-                                                font.pixelSize: 14
-                                                color: root.textColor
-                                                Layout.preferredWidth: 60
+                                                text: "Gain:"
+                                                font.pixelSize: design.fontSize
+                                                color: design.textSecondary
+                                                Layout.preferredWidth: 50
                                             }
 
                                             Slider {
@@ -528,12 +788,12 @@ if (playlistName.length > 0) {
                                                     width: gainSlider.availableWidth
                                                     height: implicitHeight
                                                     radius: 3
-                                                    color: root.surfaceLightColor
+                                                    color: design.surfaceElevated
 
                                                     Rectangle {
                                                         width: gainSlider.visualPosition * parent.width
                                                         height: parent.height
-                                                        color: gainSlider.value > 1.0 ? "#FFA500" : root.primaryColor
+                                                        color: gainSlider.value > 1.0 ? design.warning : design.accentBright
                                                         radius: 3
                                                     }
                                                 }
@@ -541,58 +801,96 @@ if (playlistName.length > 0) {
                                                 handle: Rectangle {
                                                     x: gainSlider.leftPadding + gainSlider.visualPosition * (gainSlider.availableWidth - width)
                                                     y: gainSlider.topPadding + gainSlider.availableHeight / 2 - height / 2
-                                                    implicitWidth: 18
-                                                    implicitHeight: 18
-                                                    radius: 9
-                                                    color: gainSlider.pressed ? root.primaryColor : root.textColor
-                                                    border.color: gainSlider.value > 1.0 ? "#FFA500" : root.primaryColor
-                                                    border.width: 2
+                                                    implicitWidth: 20
+                                                    implicitHeight: 20
+                                                    radius: 10
+                                                    color: gainSlider.pressed ? design.accentBright : design.surface
+                                                    border.color: gainSlider.value > 1.0 ? design.warning : design.accentBright
+                                                    border.width: 3
                                                 }
                                             }
 
                                             Label {
                                                 text: Math.round(gainSlider.value * 100) + "%"
-                                                font.pixelSize: 14
+                                                font.pixelSize: design.fontSizeLarge
                                                 font.bold: true
-                                                color: gainSlider.value > 1.0 ? "#FFA500" : root.textColor
-                                                Layout.preferredWidth: 50
+                                                color: gainSlider.value > 1.0 ? design.warning : design.textPrimary
+                                                Layout.preferredWidth: 60
                                                 horizontalAlignment: Text.AlignRight
                                             }
                                         }
 
-                                        // Warning label
+                                        // Description
                                         Label {
-                                            Layout.fillWidth: true
-                                            text: gainSlider.value > 1.0 ?
-                                                qsTr("⚠️ Warning: High gain may cause distortion") :
-                                                qsTr("Normal audio level")
-                                            font.pixelSize: 12
-                                            color: gainSlider.value > 1.0 ? "#FFA500" : root.textSecondaryColor
-                                            horizontalAlignment: Text.AlignHCenter
+                                            text: gainSlider.value > 1.0 ? "⚠️ High gain may cause distortion" : "Normal amplification level"
+                                            font.pixelSize: design.fontSize
+                                            color: gainSlider.value > 1.0 ? design.warning : design.textSecondary
+                                            Layout.alignment: Qt.AlignLeft
                                         }
                                     }
                                 }
 
-                                // Balance Control - FIXED: Proper text alignment
-                                EffectCard {
+                                // Stereo Balance Card
+                                Rectangle {
                                     Layout.fillWidth: true
-                                    title: qsTr("🎚️ Stereo Balance")
-                                    description: qsTr("Adjust left/right audio balance")
+                                    Layout.preferredHeight: 200
+                                    radius: design.radius
+                                    color: design.surface
+                                    border.width: 1
+                                    border.color: design.surfaceElevated
 
                                     ColumnLayout {
-                                        width: parent.width
+                                        anchors.fill: parent
+                                        anchors.margins: design.space
                                         spacing: 10
 
-                                        // Balance slider with proper alignment
+                                        // Title
+                                        Label {
+                                            text: "Stereo Balance"
+                                            font.pixelSize: design.fontSizeTitle
+                                            font.bold: true
+                                            color: design.textPrimary
+                                            Layout.alignment: Qt.AlignLeft
+                                        }
+
+                                        // Subtitle
+                                        Label {
+                                            text: "Adjust left/right channel balance"
+                                            font.pixelSize: design.fontSize
+                                            color: design.textSecondary
+                                            Layout.alignment: Qt.AlignLeft
+                                            wrapMode: Text.WordWrap
+                                        }
+
+                                        // Status
+                                        Label {
+                                            text: balanceSlider.value === 0 ? "Perfect balance" :
+                                                  balanceSlider.value < 0 ? "Left: " + Math.abs(Math.round(balanceSlider.value * 100)) + "%" :
+                                                  "Right: " + Math.round(balanceSlider.value * 100) + "%"
+                                            font.pixelSize: design.fontSize
+                                            color: design.textSecondary
+                                            font.bold: true
+                                            Layout.alignment: Qt.AlignHCenter
+                                        }
+
+                                        // Control
                                         RowLayout {
                                             Layout.fillWidth: true
-                                            spacing: 10
+                                            spacing: design.spaceHalf
+                                            Layout.alignment: Qt.AlignVCenter
 
                                             Label {
-                                                text: qsTr("L")
-                                                font.pixelSize: 14
+                                                text: "Balance:"
+                                                font.pixelSize: design.fontSize
+                                                color: design.textSecondary
+                                                Layout.preferredWidth: 60
+                                            }
+
+                                            Label {
+                                                text: "L"
+                                                font.pixelSize: design.fontSizeLarge
                                                 font.bold: true
-                                                color: root.textColor
+                                                color: design.textPrimary
                                                 Layout.preferredWidth: 20
                                                 horizontalAlignment: Text.AlignHCenter
                                             }
@@ -614,7 +912,7 @@ if (playlistName.length > 0) {
                                                     width: balanceSlider.availableWidth
                                                     height: implicitHeight
                                                     radius: 3
-                                                    color: root.surfaceLightColor
+                                                    color: design.surfaceElevated
 
                                                     Rectangle {
                                                         x: balanceSlider.value < 0 ?
@@ -622,75 +920,85 @@ if (playlistName.length > 0) {
                                                            parent.width / 2
                                                         width: Math.abs(balanceSlider.value * parent.width / 2)
                                                         height: parent.height
-                                                        color: root.primaryColor
+                                                        color: design.accentBright
                                                         radius: 3
                                                     }
 
                                                     Rectangle {
-                                                        x: parent.width / 2 - width / 2
+                                                        x: parent.width / 2 - 1
                                                         y: -2
                                                         width: 2
                                                         height: parent.height + 4
-                                                        color: root.textColor
-                                                        opacity: 0.3
+                                                        color: design.textSecondary
                                                     }
                                                 }
 
                                                 handle: Rectangle {
                                                     x: balanceSlider.leftPadding + balanceSlider.visualPosition * (balanceSlider.availableWidth - width)
                                                     y: balanceSlider.topPadding + balanceSlider.availableHeight / 2 - height / 2
-                                                    implicitWidth: 18
-                                                    implicitHeight: 18
-                                                    radius: 9
-                                                    color: balanceSlider.pressed ? root.primaryColor : root.textColor
-                                                    border.color: root.primaryColor
-                                                    border.width: 2
+                                                    implicitWidth: 20
+                                                    implicitHeight: 20
+                                                    radius: 10
+                                                    color: balanceSlider.pressed ? design.accentBright : design.surface
+                                                    border.color: design.accentBright
+                                                    border.width: 3
                                                 }
                                             }
 
                                             Label {
-                                                text: qsTr("R")
-                                                font.pixelSize: 14
+                                                text: "R"
+                                                font.pixelSize: design.fontSizeLarge
                                                 font.bold: true
-                                                color: root.textColor
+                                                color: design.textPrimary
                                                 Layout.preferredWidth: 20
-                                                horizontalAlignment: Text.AlignHCenter
                                             }
-                                        }
-
-                                        // Balance indicator
-                                        Label {
-                                            Layout.fillWidth: true
-                                            text: balanceSlider.value === 0 ? qsTr("Center (Balanced)") :
-                                                  balanceSlider.value < 0 ? qsTr("Left: %1%").arg(Math.abs(Math.round(balanceSlider.value * 100))) :
-                                                  qsTr("Right: %1%").arg(Math.round(balanceSlider.value * 100))
-                                            font.pixelSize: 12
-                                            color: root.textSecondaryColor
-                                            horizontalAlignment: Text.AlignHCenter
                                         }
                                     }
                                 }
 
-                                // Playback Speed - FIXED: Proper text alignment
-                                EffectCard {
+                                // Playback Speed Card
+                                Rectangle {
                                     Layout.fillWidth: true
-                                    title: qsTr("⏩ Playback Speed")
-                                    description: qsTr("Change playback speed (affects pitch)")
+                                    Layout.preferredHeight: 200
+                                    radius: design.radius
+                                    color: design.surface
+                                    border.width: 1
+                                    border.color: design.surfaceElevated
 
                                     ColumnLayout {
-                                        width: parent.width
+                                        anchors.fill: parent
+                                        anchors.margins: design.space
                                         spacing: 10
 
-                                        // Speed slider with proper alignment
+                                        // Title
+                                        Label {
+                                            text: "Playback Speed"
+                                            font.pixelSize: design.fontSizeTitle
+                                            font.bold: true
+                                            color: design.textPrimary
+                                            Layout.alignment: Qt.AlignLeft
+                                        }
+
+                                        // Subtitle
+                                        Label {
+                                            text: "Control playback tempo"
+                                            font.pixelSize: design.fontSize
+                                            color: design.textSecondary
+                                            Layout.alignment: Qt.AlignLeft
+                                            wrapMode: Text.WordWrap
+                                        }
+
+                                        // Control
                                         RowLayout {
                                             Layout.fillWidth: true
-                                            spacing: 15
+                                            spacing: design.space
+                                            Layout.alignment: Qt.AlignVCenter
 
                                             Label {
-
-                                                font.pixelSize: 14
-                                                color: root.textColor
-                                                Layout.preferredWidth: 60
+                                                text: "Speed:"
+                                                font.pixelSize: design.fontSize
+                                                color: design.textSecondary
+                                                Layout.preferredWidth: 50
                                             }
 
                                             Slider {
@@ -710,12 +1018,12 @@ if (playlistName.length > 0) {
                                                     width: speedSlider.availableWidth
                                                     height: implicitHeight
                                                     radius: 3
-                                                    color: root.surfaceLightColor
+                                                    color: design.surfaceElevated
 
                                                     Rectangle {
                                                         width: speedSlider.visualPosition * parent.width
                                                         height: parent.height
-                                                        color: root.primaryColor
+                                                        color: design.accentBright
                                                         radius: 3
                                                     }
                                                 }
@@ -723,61 +1031,56 @@ if (playlistName.length > 0) {
                                                 handle: Rectangle {
                                                     x: speedSlider.leftPadding + speedSlider.visualPosition * (speedSlider.availableWidth - width)
                                                     y: speedSlider.topPadding + speedSlider.availableHeight / 2 - height / 2
-                                                    implicitWidth: 18
-                                                    implicitHeight: 18
-                                                    radius: 9
-                                                    color: speedSlider.pressed ? root.primaryColor : root.textColor
-                                                    border.color: root.primaryColor
-                                                    border.width: 2
+                                                    implicitWidth: 20
+                                                    implicitHeight: 20
+                                                    radius: 10
+                                                    color: speedSlider.pressed ? design.accentBright : design.surface
+                                                    border.color: design.accentBright
+                                                    border.width: 3
                                                 }
                                             }
 
                                             Label {
                                                 text: speedSlider.value.toFixed(2) + "x"
-                                                font.pixelSize: 14
+                                                font.pixelSize: design.fontSizeLarge
                                                 font.bold: true
-                                                color: root.textColor
-                                                Layout.preferredWidth: 50
+                                                color: design.textPrimary
+                                                Layout.preferredWidth: 60
                                                 horizontalAlignment: Text.AlignRight
                                             }
                                         }
 
-                                        // Speed presets with proper alignment
+                                        // Speed Buttons Row
                                         RowLayout {
                                             Layout.fillWidth: true
-                                            Layout.topMargin: 10
-                                            spacing: 10
-                                            anchors.horizontalCenter: parent.horizontalCenter
+                                            spacing: design.space
+                                            Layout.alignment: Qt.AlignHCenter
 
                                             Repeater {
                                                 model: [0.5, 0.75, 1.0, 1.25, 1.5, 2.0]
 
-                                                Button {
-                                                    text: modelData.toFixed(2) + "x"
-                                                    implicitWidth: 70
-                                                    implicitHeight: 32
-                                                    onClicked: {
-                                                        speedSlider.value = modelData
-                                                        audioController.setPlaybackRate(modelData)
-                                                    }
+                                                Rectangle {
+                                                    Layout.preferredWidth: 55
+                                                    Layout.preferredHeight: 36
+                                                    radius: design.radiusSmall
+                                                    color: Math.abs(speedSlider.value - modelData) < 0.01 ? design.accentBright : design.surfaceElevated
+                                                    border.width: 1
+                                                    border.color: design.surfaceOverlay
 
-                                                    background: Rectangle {
-                                                        radius: 6
-                                                        color: Math.abs(speedSlider.value - modelData) < 0.01 ?
-                                                               root.primaryColor : root.surfaceLightColor
-                                                        border.color: Math.abs(speedSlider.value - modelData) < 0.01 ?
-                                                                      root.primaryColor : "transparent"
-                                                        border.width: 2
-                                                    }
-
-                                                    contentItem: Text {
-                                                        text: parent.text
-                                                        color: Math.abs(speedSlider.value - modelData) < 0.01 ?
-                                                               "white" : root.textColor
-                                                        horizontalAlignment: Text.AlignHCenter
-                                                        verticalAlignment: Text.AlignVCenter
-                                                        font.pixelSize: 12
+                                                    Label {
+                                                        anchors.centerIn: parent
+                                                        text: modelData.toFixed(2) + "x"
+                                                        font.pixelSize: design.fontSize
                                                         font.bold: Math.abs(speedSlider.value - modelData) < 0.01
+                                                        color: Math.abs(speedSlider.value - modelData) < 0.01 ? design.background : design.textPrimary
+                                                    }
+
+                                                    MouseArea {
+                                                        anchors.fill: parent
+                                                        onClicked: {
+                                                            speedSlider.value = modelData
+                                                            audioController.setPlaybackRate(modelData)
+                                                        }
                                                     }
                                                 }
                                             }
@@ -785,229 +1088,699 @@ if (playlistName.length > 0) {
                                     }
                                 }
 
-                                // Fade In Effect - FIXED: Proper text alignment
-
-                                EffectCard {
+                                // Fade In Effect Card
+                                Rectangle {
                                     Layout.fillWidth: true
-                                    title: qsTr("🎼 Fade In Effect")
-                                    description: qsTr("Gradually increase volume when playback starts")
+                                    Layout.preferredHeight: 200
+                                    radius: design.radius
+                                    color: design.surface
+                                    border.width: 1
+                                    border.color: design.surfaceElevated
 
-                                    Column {
-                                        anchors.horizontalCenter: parent.horizontalCenter
-                                        anchors.top: parent.top
-                                        anchors.topMargin: 15
-                                        spacing: 20
-                                        width: parent.width
+                                    ColumnLayout {
+                                        anchors.fill: parent
+                                        anchors.margins: design.space
+                                        spacing: 10
 
-                                        // Custom Checkbox
+                                        // Title
+                                        Label {
+                                            text: "Fade In Effect"
+                                            font.pixelSize: design.fontSizeTitle
+                                            font.bold: true
+                                            color: design.textPrimary
+                                            Layout.alignment: Qt.AlignLeft
+                                        }
+
+                                        // Subtitle
+                                        Label {
+                                            text: "Smooth volume transition on play"
+                                            font.pixelSize: design.fontSize
+                                            color: design.textSecondary
+                                            Layout.alignment: Qt.AlignLeft
+                                            wrapMode: Text.WordWrap
+                                        }
+
+                                        // Control
                                         Rectangle {
-                                            id: checkBox
-                                            width: 24
-                                            height: 24
-                                            radius: 6
-                                            anchors.horizontalCenter: parent.horizontalCenter
-                                            color: fadeInEnabled ? root.primaryColor : root.surfaceLightColor
-                                            border.color: fadeInEnabled ? root.primaryColor : root.textSecondaryColor
-                                            border.width: 2
+                                            Layout.alignment: Qt.AlignHCenter
+                                            Layout.preferredWidth: 60
+                                            Layout.preferredHeight: 60
+                                            radius: 30
+                                            color: audioController.fadeInEnabled ? design.accentBright : design.surfaceElevated
+                                            border.width: 3
+                                            border.color: audioController.fadeInEnabled ? design.accentBright : design.surfaceOverlay
 
-                                            property bool fadeInEnabled: audioController.fadeInEnabled
-
-                                            Behavior on color { ColorAnimation { duration: 200 } }
-                                            Behavior on border.color { ColorAnimation { duration: 200 } }
-
-                                            Text {
-                                                text: "✓"
-                                                font.pixelSize: 16
-                                                font.bold: true
-                                                color: "white"
+                                            Label {
                                                 anchors.centerIn: parent
-                                                opacity: checkBox.fadeInEnabled ? 1 : 0
-                                                Behavior on opacity { NumberAnimation { duration: 200 } }
+                                                text: audioController.fadeInEnabled ? "✓" : ""
+                                                font.pixelSize: design.fontSizeLarge
+                                                font.bold: true
+                                                color: design.background
                                             }
 
                                             MouseArea {
                                                 anchors.fill: parent
-                                                anchors.margins: -10
-                                                cursorShape: Qt.PointingHandCursor
-                                                onClicked: {
-                                                    audioController.setFadeInEnabled(!checkBox.fadeInEnabled)
-                                                }
+                                                onClicked: audioController.setFadeInEnabled(!audioController.fadeInEnabled)
                                             }
                                         }
 
-                                        // Label text
-                                        Text {
-                                            text: qsTr("Enable Fade In (1 second)")
-                                            font.pixelSize: 14
-                                            font.bold: true
-                                            color: root.textColor
-                                            anchors.horizontalCenter: parent.horizontalCenter
-                                        }
-
-                                        // Description with spacing
-                                        Item {
-                                            width: parent.width
-                                            height: 1
-                                        }
-
-                                        Text {
-                                            width: parent.width
-                                            text: checkBox.fadeInEnabled ?
-                                                qsTr("✓ Audio will fade in smoothly when you press play") :
-                                                qsTr("Audio will start at full volume immediately")
-                                            font.pixelSize: 12
-                                            color: checkBox.fadeInEnabled ? root.primaryColor : root.textSecondaryColor
-                                            horizontalAlignment: Text.AlignHCenter
-                                            wrapMode: Text.WordWrap
+                                        // Description
+                                        Label {
+                                            text: audioController.fadeInEnabled ? "Fade in enabled (1 second)" : "Fade in disabled"
+                                            font.pixelSize: design.fontSize
+                                            color: audioController.fadeInEnabled ? design.accentBright : design.textSecondary
+                                            Layout.alignment: Qt.AlignLeft
                                         }
                                     }
                                 }
+                            }
 
-                                // Reset Button
-                                Button {
-                                    Layout.alignment: Qt.AlignCenter
-                                    Layout.topMargin: 20
-                                    text: qsTr("🔄 Reset All Effects")
-                                    implicitWidth: 220
-                                    implicitHeight: 48
+                            Item { Layout.preferredHeight: design.space }
 
+                            // Reset Button
+                            Rectangle {
+                                Layout.alignment: Qt.AlignHCenter
+                                Layout.topMargin: design.spaceDouble
+                                width: 200
+                                height: 50
+                                radius: design.radius
+                                gradient: design.primaryGradient
+                                border.width: 2
+                                border.color: design.accentBright
+
+                                Label {
+                                    anchors.centerIn: parent
+                                    text: "🔄 Reset All Effects"
+                                    font.pixelSize: design.fontSizeLarge
+                                    font.bold: true
+                                    color: design.textPrimary
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
                                     onClicked: {
                                         audioController.resetEffects()
                                         gainSlider.value = 1.0
                                         balanceSlider.value = 0.0
                                         speedSlider.value = 1.0
-                                        fadeInCheck.checked = false
-                                    }
-
-                                    background: Rectangle {
-                                        radius: 24
-                                        color: parent.pressed ? root.accentColor : root.surfaceLightColor
-                                        border.color: root.accentColor
-                                        border.width: 2
-                                    }
-
-                                    contentItem: Text {
-                                        text: parent.text
-                                        font.pixelSize: 14
-                                        font.bold: true
-                                        color: root.textColor
-                                        horizontalAlignment: Text.AlignHCenter
-                                        verticalAlignment: Text.AlignVCenter
                                     }
                                 }
-
-                                Item { Layout.preferredHeight: 20 }
                             }
                         }
                     }
                 }
 
+// ==================== DISCOVERY PAGE ====================
+
+                // ==================== DISCOVERY PAGE - REPLACE IN main.qml ====================
+                // Find the discoveryPage Component in your main.qml and replace the entire delegate section
+
+                Component {
+                    id: discoveryPage
+
+                    Flickable {
+                        objectName: "discovery"
+                        contentHeight: discoveryLayout.height + design.spaceDouble
+                        contentWidth: width
+                        clip: true
+
+                        ColumnLayout {
+                            id: discoveryLayout
+                            width: parent.width
+                            spacing: design.spaceDouble
+
+                            // Header Section
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                Layout.leftMargin: design.space
+                                Layout.rightMargin: design.space
+                                spacing: design.spaceHalf
+
+                                Label {
+                                    text: "Discover New Music"
+                                    font.pixelSize: design.fontSizeHeading
+                                    font.bold: true
+                                    color: design.textPrimary
+                                }
+
+                                Label {
+                                    text: "AI-powered recommendations based on your listening history"
+                                    font.pixelSize: design.fontSize
+                                    color: design.textSecondary
+                                }
+
+                                Label {
+                                    text: "▶ Play any YouTube song from Home to get personalized recommendations"
+                                    font.pixelSize: design.fontSize
+                                    color: design.accentBright
+                                    font.italic: true
+                                    Layout.topMargin: design.spaceHalf
+                                }
+                            }
+
+                            // Recommendations List Section
+                            Item {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 600
+                                Layout.leftMargin: design.space
+                                Layout.rightMargin: design.space
+                                visible: audioController.recommendationManager.count > 0
+
+                                ColumnLayout {
+                                    anchors.fill: parent
+                                    spacing: design.space
+
+                                    // Section Header
+                                    RowLayout {
+                                        Layout.fillWidth: true
+                                        spacing: design.space
+
+                                        Label {
+                                            text: "🎵"
+                                            font.pixelSize: design.fontSizeTitle
+                                        }
+
+                                        Label {
+                                            text: "Recommended Songs"
+                                            font.pixelSize: design.fontSizeTitle
+                                            font.bold: true
+                                            color: design.textPrimary
+                                        }
+
+                                        Item { Layout.fillWidth: true }
+
+                                        Label {
+                                            text: audioController.recommendationManager.count + " available"
+                                            font.pixelSize: design.fontSize
+                                            color: design.textSecondary
+                                        }
+                                    }
+
+                                    // Scrollable Recommendations Container
+                                    Rectangle {
+                                        Layout.fillWidth: true
+                                        Layout.fillHeight: true
+                                        radius: design.radius
+                                        color: design.surface
+                                        border.width: 1
+                                        border.color: design.surfaceElevated
+
+                                        ListView {
+                                            id: recommendationsListView
+                                            anchors.fill: parent
+                                            anchors.margins: design.space
+                                            clip: true
+                                            spacing: design.space
+                                            model: audioController.recommendationManager.recommendations
+
+
+                                            // Recommendation Card Delegate - UPDATED FOR REAL THUMBNAILS
+                                            delegate: Rectangle {
+                                                width: recommendationsListView.width - design.space * 2
+                                                height: 100
+                                                radius: design.radius
+                                                color: recMouse.containsMouse ? design.surfaceElevated : design.surface
+                                                border.width: 2
+                                                border.color: recMouse.containsMouse ? design.accentBright : design.surfaceOverlay
+
+
+                                                RowLayout {
+                                                    anchors.fill: parent
+                                                    anchors.margins: design.space
+                                                    spacing: design.space
+
+                                                    // Thumbnail with loading states - UPDATED
+                                                    Rectangle {
+                                                        Layout.preferredWidth: 80
+                                                        Layout.preferredHeight: 80
+                                                        radius: design.radiusSmall
+                                                        clip: true
+
+                                                        // Dynamic gradient background (shown when loading or no thumbnail)
+                                                        gradient: Gradient {
+                                                            GradientStop {
+                                                                position: 0.0
+                                                                color: {
+                                                                    var colors = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A", "#98D8C8", "#F7DC6F", "#BB8FCE"];
+                                                                    return colors[index % colors.length];
+                                                                }
+                                                            }
+                                                            GradientStop {
+                                                                position: 1.0
+                                                                color: {
+                                                                    var colors = ["#C44569", "#26547C", "#06A77D", "#FF7F50", "#56A3A6", "#F39C12", "#8E44AD"];
+                                                                    return colors[index % colors.length];
+                                                                }
+                                                            }
+                                                        }
+
+                                                        border.width: 2
+                                                        border.color: {
+                                                            var colors = ["#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A", "#98D8C8", "#F7DC6F", "#BB8FCE"];
+                                                            return Qt.lighter(colors[index % colors.length], 1.3);
+                                                        }
+
+                                                        // Real thumbnail image (priority display)
+                                                        Image {
+                                                            id: thumbImage
+                                                            anchors.fill: parent
+                                                            source: modelData.thumbnailUrl || ""
+                                                            fillMode: Image.PreserveAspectCrop
+                                                            smooth: true
+                                                            asynchronous: true
+                                                            cache: true
+                                                            visible: status === Image.Ready
+
+                                                            // Fade in animation when loaded
+                                                            opacity: 0
+                                                            Behavior on opacity {
+                                                                NumberAnimation { duration: 300 }
+                                                            }
+
+                                                            onStatusChanged: {
+                                                                if (status === Image.Ready) {
+                                                                    opacity = 1.0
+                                                                }
+                                                            }
+                                                        }
+
+                                                        // Loading indicator
+                                                        BusyIndicator {
+                                                            anchors.centerIn: parent
+                                                            width: 40
+                                                            height: 40
+                                                            running: thumbImage.status === Image.Loading
+                                                            visible: running
+                                                        }
+
+                                                        // Fallback music visualization (shown when no thumbnail or error)
+                                                        ColumnLayout {
+                                                            anchors.centerIn: parent
+                                                            spacing: 8
+                                                            visible: thumbImage.status !== Image.Ready &&
+                                                                    thumbImage.status !== Image.Loading &&
+                                                                    (modelData.thumbnailUrl === "" || thumbImage.status === Image.Error)
+
+                                                            // Large music note
+                                                            Label {
+                                                                Layout.alignment: Qt.AlignHCenter
+                                                                text: "♫"
+                                                                font.pixelSize: 40
+                                                                font.bold: true
+                                                                color: "white"
+                                                                style: Text.Outline
+                                                                styleColor: Qt.rgba(0, 0, 0, 0.4)
+                                                            }
+
+                                                            // Mini equalizer bars
+                                                            RowLayout {
+                                                                Layout.alignment: Qt.AlignHCenter
+                                                                spacing: 4
+
+                                                                Repeater {
+                                                                    model: 4
+                                                                    Rectangle {
+                                                                        width: 5
+                                                                        height: 6 + (index * 3)
+                                                                        radius: 2
+                                                                        color: "white"
+                                                                        opacity: 0.9
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+
+                                                    // Song Info Section
+                                                    ColumnLayout {
+                                                        Layout.fillWidth: true
+                                                        Layout.fillHeight: true
+                                                        spacing: 6
+
+                                                        Label {
+                                                            text: modelData.title || "Unknown Title"
+                                                            font.pixelSize: design.fontSizeLarge
+                                                            font.bold: true
+                                                            color: design.textPrimary
+                                                            elide: Text.ElideRight
+                                                            Layout.fillWidth: true
+                                                            wrapMode: Text.NoWrap
+                                                        }
+
+                                                        Label {
+                                                            text: modelData.artist || "Unknown Artist"
+                                                            font.pixelSize: design.fontSize
+                                                            color: design.textSecondary
+                                                            elide: Text.ElideRight
+                                                            Layout.fillWidth: true
+                                                        }
+
+                                                        Label {
+                                                            text: "Search: " + (modelData.searchQuery || "No query")
+                                                            font.pixelSize: design.fontSize - 2
+                                                            color: design.textMuted
+                                                            elide: Text.ElideRight
+                                                            Layout.fillWidth: true
+                                                        }
+                                                    }
+
+                                                    // Play Button
+                                                    Rectangle {
+                                                        Layout.preferredWidth: 60
+                                                        Layout.preferredHeight: 60
+                                                        radius: 30
+                                                        gradient: Gradient {
+                                                            GradientStop { position: 0.0; color: design.accent }
+                                                            GradientStop { position: 1.0; color: design.accentBright }
+                                                        }
+                                                        border.width: 2
+                                                        border.color: design.accentBright
+
+                                                        Label {
+                                                            anchors.centerIn: parent
+                                                            text: "▶"
+                                                            font.pixelSize: 24
+                                                            color: design.textPrimary
+                                                        }
+
+                                                        MouseArea {
+                                                            anchors.fill: parent
+                                                            cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            audioController.playRecommendedSong(index);
+                                        }
+                                                        }
+                                                    }
+                                                }
+
+                                                // Hover effect
+                                                MouseArea {
+                                                    id: recMouse
+                                                    anchors.fill: parent
+                                                    hoverEnabled: true
+                                                    propagateComposedEvents: true
+                                                    onClicked: function(mouse) {
+                                                        mouse.accepted = false;
+                                                    }
+                                                }
+                                            }
+
+                                            // Custom Scrollbar
+                                            ScrollBar.vertical: ScrollBar {
+                                                policy: ScrollBar.AsNeeded
+
+                                                background: Rectangle {
+                                                    color: design.surfaceElevated
+                                                    radius: 4
+                                                    implicitWidth: 8
+                                                }
+
+                                                contentItem: Rectangle {
+                                                    implicitWidth: 8
+                                                    radius: 4
+                                                    color: design.accentBright
+                                                    opacity: parent.pressed ? 1.0 : 0.7
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Empty State - shown when no recommendations
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.preferredHeight: 400
+                                Layout.leftMargin: design.space
+                                Layout.rightMargin: design.space
+                                radius: design.radius
+                                color: design.surface
+                                border.width: 1
+                                border.color: design.surfaceElevated
+                                visible: audioController.recommendationManager.count === 0
+
+                                ColumnLayout {
+                                    anchors.centerIn: parent
+                                    spacing: design.spaceDouble
+                                    width: parent.width * 0.7
+
+                                    // Large search icon
+                                    Label {
+                                        Layout.alignment: Qt.AlignHCenter
+                                        text: "🔍"
+                                        font.pixelSize: 80
+                                    }
+
+                                    Label {
+                                        Layout.fillWidth: true
+                                        text: "No Recommendations Yet"
+                                        font.pixelSize: design.fontSizeTitle
+                                        font.bold: true
+                                        color: design.textPrimary
+                                        horizontalAlignment: Text.AlignHCenter
+                                    }
+
+                                    Label {
+                                        Layout.fillWidth: true
+                                        text: "Play YouTube songs from the Home page to discover new music. After 10 seconds of playback, we'll automatically find 7 similar tracks you might enjoy!"
+                                        font.pixelSize: design.fontSize
+                                        color: design.textSecondary
+                                        wrapMode: Text.WordWrap
+                                        horizontalAlignment: Text.AlignHCenter
+                                    }
+
+                                    Rectangle {
+                                        Layout.alignment: Qt.AlignHCenter
+                                        Layout.topMargin: design.space
+                                        width: 220
+                                        height: 50
+                                        radius: design.radius
+                                        gradient: Gradient {
+                                            GradientStop { position: 0.0; color: design.accent }
+                                            GradientStop { position: 1.0; color: design.accentBright }
+                                        }
+                                        border.width: 2
+                                        border.color: design.accentBright
+
+                                        Label {
+                                            anchors.centerIn: parent
+                                            text: "🎬 Search YouTube Music"
+                                            font.pixelSize: design.fontSizeLarge
+                                            font.bold: true
+                                            color: design.textPrimary
+                                        }
+
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            cursorShape: Qt.PointingHandCursor
+                                            onClicked: {
+                                                stackView.replace(homePage);
+                                                youtubeDialog.open();
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Bottom Spacer
+                            Item {
+                                Layout.preferredHeight: design.space
+                            }
+                        }
+
+                        // Monitor recommendation changes
+                        Connections {
+                            target: audioController.recommendationManager
+                            function onRecommendationsChanged() {
+                                console.log("=== QML: recommendationsChanged signal received ===");
+                                console.log("New count:", audioController.recommendationManager.count);
+                            }
+                        }
+                    }
+                }
 
                 // ==================== LIBRARY PAGE ====================
                 Component {
                     id: libraryPage
 
-                    Rectangle {
-                        objectName: "libraryPage"
-                        color: root.backgroundColor
+                    Flickable {
+                        objectName: "library"
+                        contentHeight: libraryLayout.height + design.spaceDouble
+                        contentWidth: width
+                        clip: true
 
                         ColumnLayout {
-                            anchors.fill: parent
-                            anchors.margins: 30
-                            spacing: 20
+                            id: libraryLayout
+                            width: parent.width
+                            spacing: design.spaceDouble
 
-                            // Header with Actions
+                            // Header
                             RowLayout {
                                 Layout.fillWidth: true
-                                spacing: 20
+                                Layout.leftMargin: design.space
+                                Layout.rightMargin: design.space
+                                spacing: design.space
 
-                                Label {
-                                    text: qsTr("Music Library")
-                                    font.pixelSize: 28
-                                    font.bold: true
-                                    color: root.textColor
+                                ColumnLayout {
+                                    Layout.fillWidth: true
+                                    spacing: design.spaceHalf
+
+                                    Label {
+                                        text: "Music Library"
+                                        font.pixelSize: design.fontSizeHeading
+                                        font.bold: true
+                                        color: design.textPrimary
+                                    }
+
+                                    Label {
+                                        text: "Your complete music collection"
+                                        font.pixelSize: design.fontSize
+                                        color: design.textSecondary
+                                    }
                                 }
 
-                                Item { Layout.fillWidth: true }
+                                RowLayout {
+                                    spacing: design.space
 
-                                ToolButton {
-                                    text: qsTr("💾 Save Playlist")
-                                    enabled: libraryModel.totalTracks > 0
-                                    onClicked: savePlaylistDialog.open()
-                                }
+                                    Rectangle {
+                                        width: 140
+                                        height: 45
+                                        radius: design.radius
+                                        gradient: design.primaryGradient
+                                        border.width: 1
+                                        border.color: design.accentBright
 
-                                ToolButton {
-                                    text: qsTr("📂 Add Folder")
-                                    primary: true
-                                    onClicked: folderDialog.open()
+                                        RowLayout {
+                                            anchors.centerIn: parent
+                                            spacing: design.spaceHalf
+
+                                            NeonIcon {
+                                                iconName: "save"
+                                                size: 18
+                                                glowColor: design.textPrimary
+                                            }
+
+                                            Label {
+                                                text: "Save Playlist"
+                                                font.pixelSize: design.fontSize
+                                                color: design.textPrimary
+                                            }
+                                        }
+
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            onClicked: savePlaylistDialog.open()
+                                            enabled: libraryModel.totalTracks > 0
+                                        }
+                                    }
+
+                                    Rectangle {
+                                        width: 140
+                                        height: 45
+                                        radius: design.radius
+                                        color: design.surface
+                                        border.width: 1
+                                        border.color: design.surfaceElevated
+
+                                        RowLayout {
+                                            anchors.centerIn: parent
+                                            spacing: design.spaceHalf
+
+                                            NeonIcon {
+                                                iconName: "folder"
+                                                size: 18
+                                                glowColor: design.accentBright
+                                            }
+
+                                            Label {
+                                                text: "Add Folder"
+                                                font.pixelSize: design.fontSize
+                                                color: design.textPrimary
+                                            }
+                                        }
+
+                                        MouseArea {
+                                            anchors.fill: parent
+                                            onClicked: folderDialog.open()
+                                        }
+                                    }
                                 }
                             }
 
                             // Search Bar
                             Rectangle {
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: 50
-                                color: root.surfaceColor
-                                radius: 25
+                                Layout.leftMargin: design.space
+                                Layout.rightMargin: design.space
+                                height: 60
+                                radius: design.radiusLarge
+                                color: design.surface
+                                border.width: 2
+                                border.color: design.surfaceElevated
 
                                 RowLayout {
                                     anchors.fill: parent
-                                    anchors.margins: 15
-                                    spacing: 12
+                                    anchors.margins: design.space
 
-                                    Label {
-                                        text: "🔍"
-                                        font.pixelSize: 18
+                                    NeonIcon {
+                                        iconName: "search"
+                                        size: 24
+                                        glowColor: design.accentBright
                                     }
 
                                     TextField {
                                         id: searchField
                                         Layout.fillWidth: true
                                         placeholderText: qsTr("Search tracks, artists, albums...")
-                                        color: root.textColor
-                                        font.pixelSize: 14
+                                        color: design.textPrimary
+                                        font.pixelSize: design.fontSizeLarge
                                         background: Item {}
                                         onTextChanged: libraryModel.search(text)
+                                    }
+
+                                    Label {
+                                        text: libraryModel.totalTracks + " tracks"
+                                        font.pixelSize: design.fontSize
+                                        color: design.textSecondary
+                                        visible: searchField.text === ""
                                     }
                                 }
                             }
 
-                            // Stats Overview
-                            Rectangle {
+                            // Stats Cards
+                            RowLayout {
                                 Layout.fillWidth: true
-                                Layout.preferredHeight: 90
-                                color: root.surfaceColor
-                                radius: 12
+                                Layout.leftMargin: design.space
+                                Layout.rightMargin: design.space
+                                Layout.bottomMargin: design.spaceDouble
+                                spacing: design.space
 
-                                RowLayout {
-                                    anchors.fill: parent
-                                    anchors.margins: 20
-                                    spacing: 30
+                                StatCard {
+                                    title: "Total Tracks"
+                                    value: libraryModel.totalTracks.toString()
+                                    accentColor: "#06B6D4"
+                                    backgroundColor: "#673AB7"
+                                }
 
-                                    LibraryStat {
-                                        icon: "🎵"
-                                        value: libraryModel.totalTracks
-                                        label: qsTr("Tracks")
-                                    }
+                                StatCard {
+                                    title: "Artists"
+                                    value: libraryModel.totalArtists.toString()
+                                    accentColor: design.success
+                                    backgroundColor: "#2196F3"
+                                }
 
-                                    LibraryStat {
-                                        icon: "🎤"
-                                        value: libraryModel.totalArtists
-                                        label: qsTr("Artists")
-                                    }
+                                StatCard {
+                                    title: "Albums"
+                                    value: libraryModel.totalAlbums.toString()
+                                    accentColor: design.warning
+                                    backgroundColor: "#00BCD4"
+                                }
 
-                                    LibraryStat {
-                                        icon: "💿"
-                                        value: libraryModel.totalAlbums
-                                        label: qsTr("Albums")
-                                    }
-
-                                    LibraryStat {
-                                        icon: "⏱️"
-                                        value: formatDuration(libraryModel.totalDuration)
-                                        label: qsTr("Duration")
-                                        isTime: true
-                                    }
+                                StatCard {
+                                    title: "Duration"
+                                    value: formatDuration(libraryModel.totalDuration)
+                                    accentColor: design.error
+                                    backgroundColor: "#4CAF50"
                                 }
                             }
 
@@ -1015,8 +1788,13 @@ if (playlistName.length > 0) {
                             Rectangle {
                                 Layout.fillWidth: true
                                 Layout.fillHeight: true
-                                color: root.surfaceColor
-                                radius: 12
+                                Layout.minimumHeight: 400
+                                Layout.leftMargin: design.space
+                                Layout.rightMargin: design.space
+                                radius: design.radius
+                                color: design.surface
+                                border.width: 1
+                                border.color: design.surfaceElevated
 
                                 ListView {
                                     anchors.fill: parent
@@ -1028,31 +1806,45 @@ if (playlistName.length > 0) {
                                     delegate: Rectangle {
                                         width: ListView.view.width
                                         height: 70
-                                        color: mouseArea.containsMouse ? root.surfaceLightColor : root.surfaceColor
+                                        radius: design.radiusSmall
+                                        color: trackMouse.containsMouse ? design.surfaceElevated : design.surface
 
-                                            MouseArea {
-                                                id: mouseArea
-                                                anchors.fill: parent
-                                                hoverEnabled: true
-                                                onDoubleClicked: {
-                                                    // Enable library playback mode
-                                                    audioController.setLibraryPlaybackMode(true)
-                                                    // Play from this index
-                                                    audioController.playFromLibraryIndex(index)
-                                                }
+                                        MouseArea {
+                                            id: trackMouse
+                                            anchors.fill: parent
+                                            hoverEnabled: true
+                                            onDoubleClicked: {
+                                                audioController.setLibraryPlaybackMode(true)
+                                                audioController.playFromLibraryIndex(index)
                                             }
+                                        }
 
                                         RowLayout {
                                             anchors.fill: parent
-                                            anchors.margins: 15
-                                            spacing: 15
+                                            anchors.margins: design.space
+                                            spacing: design.space
 
                                             Label {
                                                 text: (index + 1).toString()
-                                                font.pixelSize: 14
-                                                color: root.textSecondaryColor
-                                                Layout.preferredWidth: 30
+                                                font.pixelSize: design.fontSizeLarge
+                                                color: design.textSecondary
+                                                Layout.preferredWidth: 40
                                                 horizontalAlignment: Text.AlignRight
+                                            }
+
+                                            Rectangle {
+                                                Layout.preferredWidth: 50
+                                                Layout.preferredHeight: 50
+                                                radius: design.radius
+                                                color: design.surfaceElevated
+
+                                                Image {
+                                                    anchors.fill: parent
+                                                    anchors.margins: 2
+                                                    source: model.albumArt || ""
+                                                    fillMode: Image.PreserveAspectCrop
+                                                    smooth: true
+                                                }
                                             }
 
                                             ColumnLayout {
@@ -1060,69 +1852,66 @@ if (playlistName.length > 0) {
                                                 spacing: 4
 
                                                 Label {
-                                                    text: model.title || "Unknown"
-                                                    font.pixelSize: 16
-                                                    font.bold: true
-                                                    color: root.textColor
-                                                    elide: Text.ElideRight
                                                     Layout.fillWidth: true
+                                                    text: model.title || "Unknown"
+                                                    font.pixelSize: design.fontSizeLarge
+                                                    font.bold: true
+                                                    color: design.textPrimary
+                                                    elide: Text.ElideRight
                                                 }
 
                                                 RowLayout {
-                                                    spacing: 8
+                                                    spacing: design.space
 
                                                     Label {
                                                         text: model.artist || "Unknown Artist"
-                                                        font.pixelSize: 12
-                                                        color: root.textSecondaryColor
+                                                        font.pixelSize: design.fontSize
+                                                        color: design.textSecondary
                                                     }
 
                                                     Label {
                                                         text: "•"
-                                                        font.pixelSize: 12
-                                                        color: root.textSecondaryColor
+                                                        font.pixelSize: design.fontSize
+                                                        color: design.textMuted
                                                     }
 
                                                     Label {
                                                         text: model.album || "Unknown Album"
-                                                        font.pixelSize: 12
-                                                        color: root.textSecondaryColor
+                                                        font.pixelSize: design.fontSize
+                                                        color: design.textSecondary
                                                     }
                                                 }
                                             }
 
                                             Label {
                                                 text: formatDuration(model.duration)
-                                                font.pixelSize: 12
-                                                color: root.textSecondaryColor
-                                                Layout.preferredWidth: 50
+                                                font.pixelSize: design.fontSize
+                                                color: design.textSecondary
+                                                Layout.preferredWidth: 60
                                                 horizontalAlignment: Text.AlignRight
                                             }
 
-                                            Button {
-                                                text: "▶"
-                                                implicitWidth: 38
-                                                implicitHeight: 38
-                                                onClicked: {
-                                                    // Enable library playback mode
-                                                    audioController.setLibraryPlaybackMode(true)
-                                                    // Play from this index
-                                                    audioController.playFromLibraryIndex(index)
-                                                } // ✅ FIXED: Added closing brace
+                                            Rectangle {
+                                                width: 45
+                                                height: 45
+                                                radius: design.radius
+                                                color: design.accentBright
+                                                border.width: 2
+                                                border.color: design.accent
 
-                                                background: Rectangle {
-                                                    radius: 19
-                                                    color: parent.pressed ? root.primaryColor : "transparent"
-                                                    border.color: root.primaryColor
-                                                    border.width: 2
+                                                NeonIcon {
+                                                    anchors.centerIn: parent
+                                                    iconName: "play"
+                                                    size: 18
+                                                    glowColor: design.background
                                                 }
 
-                                                contentItem: Text {
-                                                    text: parent.text
-                                                    color: root.primaryColor
-                                                    horizontalAlignment: Text.AlignHCenter
-                                                    verticalAlignment: Text.AlignVCenter
-                                                    font.pixelSize: 13
+                                                MouseArea {
+                                                    anchors.fill: parent
+                                                    onClicked: {
+                                                        audioController.setLibraryPlaybackMode(true)
+                                                        audioController.playFromLibraryIndex(index)
+                                                    }
                                                 }
                                             }
                                         }
@@ -1130,525 +1919,347 @@ if (playlistName.length > 0) {
 
                                     ScrollBar.vertical: ScrollBar {
                                         policy: ScrollBar.AsNeeded
+                                        background: Rectangle {
+                                            color: design.surfaceElevated
+                                            radius: 2
+                                        }
+                                        contentItem: Rectangle {
+                                            implicitWidth: 6
+                                            radius: 3
+                                            color: design.accentBright
+                                        }
                                     }
                                 }
                             }
+
+                            Item { Layout.preferredHeight: design.space }
                         }
                     }
                 }
 
 
-
-
-
-
-
-
-
-
-
-                // ==================== About PAGE ====================
-
+                // ==================== ABOUT PAGE ====================
                 Component {
-                    id: aboutpage
+                    id: aboutPage
+
+                    Flickable {
+                        objectName: "about"
+                        contentHeight: aboutContent.height + design.spaceDouble
+                        contentWidth: width
+                        clip: true
+
+                        ColumnLayout {
+                            id: aboutContent
+                            width: parent.width
+                            spacing: design.spaceDouble
+
+                            // Header
+                            Label {
+                                text: "About Finix Player"
+                                font.pixelSize: design.fontSizeHeading
+                                font.bold: true
+                                color: design.textPrimary
+                                Layout.leftMargin: design.space
+                            }
+
+                            // App Info Card
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.leftMargin: design.space
+                                Layout.rightMargin: design.space
+                                implicitHeight: 200
+                                radius: design.radius
+                                color: design.surface
+                                border.width: 1
+                                border.color: design.surfaceElevated
+
+                                ColumnLayout {
+                                    anchors.fill: parent
+                                    anchors.margins: design.space
+                                    spacing: design.space
+
+                                    Label {
+                                        text: "📱 Application Information"
+                                        font.pixelSize: design.fontSizeTitle
+                                        font.bold: true
+                                        color: design.textPrimary
+                                    }
+
+                                    GridLayout {
+                                        columns: 2
+                                        rowSpacing: design.space
+                                        columnSpacing: design.spaceDouble
+
+                                        Label { text: "Name:"; color: design.textSecondary; font.pixelSize: design.fontSize }
+                                        Label { text: "Finix Player"; color: design.textPrimary; font.bold: true; font.pixelSize: design.fontSize }
+
+                                        Label { text: "Version:"; color: design.textSecondary; font.pixelSize: design.fontSize }
+                                        Label { text: "1.0.1"; color: design.textPrimary; font.bold: true; font.pixelSize: design.fontSize }
+
+                                        Label { text: "Framework:"; color: design.textSecondary; font.pixelSize: design.fontSize }
+                                        Label { text: "Qt 6.10 + C++17"; color: design.textPrimary; font.bold: true; font.pixelSize: design.fontSize }
+                                    }
+                                }
+                            }
+
+                            // Developer Info
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.leftMargin: design.space
+                                Layout.rightMargin: design.space
+                                implicitHeight: 180
+                                radius: design.radius
+                                color: design.surface
+                                border.width: 1
+                                border.color: design.surfaceElevated
+
+                                ColumnLayout {
+                                    anchors.fill: parent
+                                    anchors.margins: design.space
+                                    spacing: design.space
+
+                                    Label {
+                                        text: "👨‍💻 Developer"
+                                        font.pixelSize: design.fontSizeTitle
+                                        font.bold: true
+                                        color: design.textPrimary
+                                    }
+
+                                    GridLayout {
+                                        columns: 2
+                                        rowSpacing: design.space
+                                        columnSpacing: design.spaceDouble
+
+                                        Label { text: "Developer:"; color: design.textSecondary; font.pixelSize: design.fontSize }
+                                        Label { text: "Kazi MD. Sayed Hossain"; color: design.textPrimary; font.bold: true; font.pixelSize: design.fontSize }
+
+                                        Label { text: "Email:"; color: design.textSecondary; font.pixelSize: design.fontSize }
+                                        Label { text: "kazimdsayedhossain@outlook.com"; color: design.accentBright; font.bold: true; font.pixelSize: design.fontSize }
+
+                                        Label { text: "Location:"; color: design.textSecondary; font.pixelSize: design.fontSize }
+                                        Label { text: "Khulna, Bangladesh"; color: design.textPrimary; font.bold: true; font.pixelSize: design.fontSize }
+                                    }
+                                }
+                            }
+
+                            // Features
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.leftMargin: design.space
+                                Layout.rightMargin: design.space
+                                implicitHeight: 250
+                                radius: design.radius
+                                color: design.surface
+                                border.width: 1
+                                border.color: design.surfaceElevated
+
+                                ColumnLayout {
+                                    anchors.fill: parent
+                                    anchors.margins: design.space
+                                    spacing: design.space
+
+                                    Label {
+                                        text: "✨ Features"
+                                        font.pixelSize: design.fontSizeTitle
+                                        font.bold: true
+                                        color: design.textPrimary
+                                    }
+
+                                    ColumnLayout {
+                                        spacing: design.spaceHalf
+
+                                        FeatureItem { text: "Local audio file playback (MP3, FLAC, OGG, WAV, M4A, AAC)" }
+                                        FeatureItem { text: "YouTube audio streaming with search" }
+                                        FeatureItem { text: "Real-time audio effects (Gain, Balance, Speed, Fade In)" }
+                                        FeatureItem { text: "Music library with search and metadata" }
+                                        FeatureItem { text: "Modern user interface with dark theme" }
+                                    }
+                                }
+                            }
+
+                            // Keyboard Shortcuts
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.leftMargin: design.space
+                                Layout.rightMargin: design.space
+                                implicitHeight: 200
+                                radius: design.radius
+                                color: design.surface
+                                border.width: 1
+                                border.color: design.surfaceElevated
+
+                                ColumnLayout {
+                                    anchors.fill: parent
+                                    anchors.margins: design.space
+                                    spacing: design.space
+
+                                    Label {
+                                        text: "⌨️ Keyboard Shortcuts"
+                                        font.pixelSize: design.fontSizeTitle
+                                        font.bold: true
+                                        color: design.textPrimary
+                                    }
+
+                                    GridLayout {
+                                        columns: 2
+                                        rowSpacing: design.space
+                                        columnSpacing: design.spaceDouble
+
+                                        Label { text: "Space"; color: design.accentBright; font.bold: true; font.pixelSize: design.fontSize }
+                                        Label { text: "Play/Pause"; color: design.textPrimary; font.pixelSize: design.fontSize }
+
+                                        Label { text: "Ctrl+O"; color: design.accentBright; font.bold: true; font.pixelSize: design.fontSize }
+                                        Label { text: "Open File"; color: design.textPrimary; font.pixelSize: design.fontSize }
+
+                                        Label { text: "Ctrl+L"; color: design.accentBright; font.bold: true; font.pixelSize: design.fontSize }
+                                        Label { text: "Open Library"; color: design.textPrimary; font.pixelSize: design.fontSize }
+
+                                        Label { text: "↑/↓"; color: design.accentBright; font.bold: true; font.pixelSize: design.fontSize }
+                                        Label { text: "Volume Up/Down"; color: design.textPrimary; font.pixelSize: design.fontSize }
+                                    }
+                                }
+                            }
+
+                            Item { Layout.preferredHeight: design.space }
+                        }
+                    }
+                }
+            }
+        }
+
+        // ==================== BOTTOM PLAYER ====================
+        Rectangle {
+            id: bottomPlayer
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            height: 120
+            color: design.surface
+            border.width: 1
+            border.color: design.surfaceElevated
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.margins: design.space
+                spacing: design.space
+
+                // Track Info - FIXED: Set maximum width
+                RowLayout {
+                    Layout.preferredWidth: 300
+                    Layout.maximumWidth: 300
+                    spacing: design.space
 
                     Rectangle {
-                        objectName: "aboutpage"
-                        color: root.backgroundColor
+                        width: 70
+                        height: 70
+                        radius: design.radius
+                        color: design.surfaceElevated
 
-                        Flickable {
+                        Image {
                             anchors.fill: parent
-                            anchors.margins: 30
-                            contentHeight: aboutContent.height
-                            contentWidth: width
-                            clip: true
-                            boundsBehavior: Flickable.StopAtBounds
+                            anchors.margins: 3
+                            source: audioController.thumbnailUrl || ""
+                            fillMode: Image.PreserveAspectCrop
+                            visible: source !== ""
+                        }
 
-                            ColumnLayout {
-                                id: aboutContent
-                                width: parent.width
-                                spacing: 20
+                        NeonIcon {
+                            anchors.centerIn: parent
+                            iconName: "music"
+                            size: 30
+                            glowColor: design.accentBright
+                            visible: !parent.children[0].visible
+                        }
+                    }
 
-                                // Header
-                                Label {
-                                    text: qsTr("About")
-                                    font.pixelSize: 32
-                                    font.bold: true
-                                    color: root.textColor
-                                    Layout.bottomMargin: 10
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 4
+
+                        Label {
+                            text: {
+                                var fullTitle = audioController.trackTitle || "No track playing";
+                                var words = fullTitle.split(" ");
+                                if (words.length > 3) {
+                                    return words.slice(0, 3).join(" ") + "...";
                                 }
+                                return fullTitle;
+                            }
+                            font.pixelSize: design.fontSizeLarge
+                            font.bold: true
+                            color: design.textPrimary
+                            elide: Text.ElideRight
+                            Layout.fillWidth: true
+                        }
 
-                                // Application Info Card
-                                Rectangle {
-                                    Layout.fillWidth: true
-                                    implicitHeight: appInfoColumn.implicitHeight + 40
-                                    color: root.surfaceColor
-                                    radius: 12
+                        Label {
+                            text: audioController.trackArtist || "Unknown Artist"
+                            font.pixelSize: design.fontSize
+                            color: design.textSecondary
+                            elide: Text.ElideRight
+                        }
+                    }
+                }
 
-                                    ColumnLayout {
-                                        id: appInfoColumn
-                                        anchors {
-                                            left: parent.left
-                                            right: parent.right
-                                            top: parent.top
-                                            margins: 20
-                                        }
-                                        spacing: 15
+                // Playback Controls - FIXED: Set fixed width
+                RowLayout {
+                    Layout.preferredWidth: 160
+                    Layout.alignment: Qt.AlignVCenter
+                    spacing: design.spaceHalf
 
-                                        Label {
-                                            text: qsTr("📱 Application Info")
-                                            font.pixelSize: 18
-                                            font.bold: true
-                                            color: root.textColor
-                                        }
+                    ControlButton {
+                        icon: "previous"
+                        enabled: audioController.duration > 0
+                        onClicked: {
+                            if (audioController.libraryPlaybackEnabled) {
+                                audioController.playPreviousInLibrary()
+                            } else {
+                                audioController.seek(0)
+                            }
+                        }
+                    }
 
-                                        // Name
-                                        RowLayout {
-                                            spacing: 15
-                                            Label {
-                                                text: qsTr("Name:")
-                                                font.pixelSize: 14
-                                                color: root.textSecondaryColor
-                                                Layout.minimumWidth: 100
-                                            }
-                                            Label {
-                                                text: qsTr("Finix Player")
-                                                font.pixelSize: 14
-                                                font.bold: true
-                                                color: root.textColor
-                                            }
-                                        }
+                    ControlButton {
+                        id: playPauseButton
+                        icon: audioController.isPlaying ? "pause" : "play"
+                        primary: true
+                        enabled: audioController.duration > 0
+                        onClicked: {
+                            if (audioController.isPlaying) {
+                                audioController.pause()
+                            } else {
+                                audioController.play()
+                            }
+                        }
+                    }
 
-                                        // Version
-                                        RowLayout {
-                                            spacing: 15
-                                            Label {
-                                                text: qsTr("Version:")
-                                                font.pixelSize: 14
-                                                color: root.textSecondaryColor
-                                                Layout.minimumWidth: 100
-                                            }
-                                            Label {
-                                                text: qsTr("1.0.0")
-                                                font.pixelSize: 14
-                                                font.bold: true
-                                                color: root.textColor
-                                            }
-                                        }
-
-                                        // Framework
-                                        RowLayout {
-                                            spacing: 15
-                                            Label {
-                                                text: qsTr("Framework:")
-                                                font.pixelSize: 14
-                                                color: root.textSecondaryColor
-                                                Layout.minimumWidth: 100
-                                            }
-                                            Label {
-                                                text: qsTr("Qt 6.10 + C++17")
-                                                font.pixelSize: 14
-                                                font.bold: true
-                                                color: root.textColor
-                                            }
-                                        }
-
-                                        // Build
-                                        RowLayout {
-                                            spacing: 15
-                                            Label {
-                                                text: qsTr("Build:")
-                                                font.pixelSize: 14
-                                                color: root.textSecondaryColor
-                                                Layout.minimumWidth: 100
-                                            }
-                                            Label {
-                                                text: qsTr("Release")
-                                                font.pixelSize: 14
-                                                font.bold: true
-                                                color: root.textColor
-                                            }
-                                        }
-                                    }
-                                }
-
-                                // Developer Info Card
-                                Rectangle {
-                                    Layout.fillWidth: true
-                                    implicitHeight: developerColumn.implicitHeight + 40
-                                    color: root.surfaceColor
-                                    radius: 12
-
-                                    ColumnLayout {
-                                        id: developerColumn
-                                        anchors {
-                                            left: parent.left
-                                            right: parent.right
-                                            top: parent.top
-                                            margins: 20
-                                        }
-                                        spacing: 15
-
-                                        Label {
-                                            text: qsTr("👨‍💻 Developer Info")
-                                            font.pixelSize: 18
-                                            font.bold: true
-                                            color: root.textColor
-                                        }
-
-                                        // Developer
-                                        RowLayout {
-                                            spacing: 15
-                                            Label {
-                                                text: qsTr("Developer:")
-                                                font.pixelSize: 14
-                                                color: root.textSecondaryColor
-                                                Layout.minimumWidth: 100
-                                            }
-                                            Label {
-                                                text: qsTr("Kazi MD. Sayed Hossain")
-                                                font.pixelSize: 14
-                                                font.bold: true
-                                                color: root.textColor
-                                            }
-                                        }
-
-                                        // Email
-                                        RowLayout {
-                                            spacing: 15
-                                            Label {
-                                                text: qsTr("Email:")
-                                                font.pixelSize: 14
-                                                color: root.textSecondaryColor
-                                                Layout.minimumWidth: 100
-                                            }
-                                            Label {
-                                                text: qsTr("kazimdsayedhossain@outlook.com")
-                                                font.pixelSize: 13
-                                                font.bold: true
-                                                color: root.primaryColor
-                                            }
-                                        }
-
-                                        // Location
-                                        RowLayout {
-                                            spacing: 15
-                                            Label {
-                                                text: qsTr("Location:")
-                                                font.pixelSize: 14
-                                                color: root.textSecondaryColor
-                                                Layout.minimumWidth: 100
-                                            }
-                                            Label {
-                                                text: qsTr("Khulna, Bangladesh")
-                                                font.pixelSize: 14
-                                                font.bold: true
-                                                color: root.textColor
-                                            }
-                                        }
-                                    }
-                                }
-
-                                // Features Card
-                                Rectangle {
-                                    Layout.fillWidth: true
-                                    implicitHeight: featuresColumn.implicitHeight + 40
-                                    color: root.surfaceColor
-                                    radius: 12
-
-                                    ColumnLayout {
-                                        id: featuresColumn
-                                        anchors {
-                                            left: parent.left
-                                            right: parent.right
-                                            top: parent.top
-                                            margins: 20
-                                        }
-                                        spacing: 12
-
-                                        Label {
-                                            text: qsTr("✨ Features")
-                                            font.pixelSize: 18
-                                            font.bold: true
-                                            color: root.textColor
-                                            Layout.bottomMargin: 5
-                                        }
-
-                                        // Feature 1
-                                        RowLayout {
-                                            spacing: 10
-                                            Label {
-                                                text: "•"
-                                                font.pixelSize: 18
-                                                color: root.primaryColor
-                                            }
-                                            Label {
-                                                text: qsTr("Local audio file playback (MP3, FLAC, OGG, WAV, M4A, AAC)")
-                                                font.pixelSize: 13
-                                                color: root.textSecondaryColor
-                                                wrapMode: Text.WordWrap
-                                                Layout.fillWidth: true
-                                            }
-                                        }
-
-                                        // Feature 2
-                                        RowLayout {
-                                            spacing: 10
-                                            Label {
-                                                text: "•"
-                                                font.pixelSize: 18
-                                                color: root.primaryColor
-                                            }
-                                            Label {
-                                                text: qsTr("YouTube audio streaming with search")
-                                                font.pixelSize: 13
-                                                color: root.textSecondaryColor
-                                                wrapMode: Text.WordWrap
-                                                Layout.fillWidth: true
-                                            }
-                                        }
-
-                                        // Feature 3
-                                        RowLayout {
-                                            spacing: 10
-                                            Label {
-                                                text: "•"
-                                                font.pixelSize: 18
-                                                color: root.primaryColor
-                                            }
-                                            Label {
-                                                text: qsTr("Real-time audio effects (Gain, Balance, Speed, Fade In)")
-                                                font.pixelSize: 13
-                                                color: root.textSecondaryColor
-                                                wrapMode: Text.WordWrap
-                                                Layout.fillWidth: true
-                                            }
-                                        }
-
-                                        // Feature 4
-                                        RowLayout {
-                                            spacing: 10
-                                            Label {
-                                                text: "•"
-                                                font.pixelSize: 18
-                                                color: root.primaryColor
-                                            }
-                                            Label {
-                                                text: qsTr("Music library with search and metadata")
-                                                font.pixelSize: 13
-                                                color: root.textSecondaryColor
-                                                wrapMode: Text.WordWrap
-                                                Layout.fillWidth: true
-                                            }
-                                        }
-
-                                        // Feature 5
-                                        RowLayout {
-                                            spacing: 10
-                                            Label {
-                                                text: "•"
-                                                font.pixelSize: 18
-                                                color: root.primaryColor
-                                            }
-                                            Label {
-                                                text: qsTr("Modern user interface with dark theme")
-                                                font.pixelSize: 13
-                                                color: root.textSecondaryColor
-                                                wrapMode: Text.WordWrap
-                                                Layout.fillWidth: true
-                                            }
-                                        }
-                                    }
-                                }
-
-                                // Keyboard Shortcuts Card
-                                Rectangle {
-                                    Layout.fillWidth: true
-                                    implicitHeight: shortcutsColumn.implicitHeight + 40
-                                    color: root.surfaceColor
-                                    radius: 12
-
-                                    ColumnLayout {
-                                        id: shortcutsColumn
-                                        anchors {
-                                            left: parent.left
-                                            right: parent.right
-                                            top: parent.top
-                                            margins: 20
-                                        }
-                                        spacing: 15
-
-                                        Label {
-                                            text: qsTr("⌨️ Keyboard Shortcuts")
-                                            font.pixelSize: 18
-                                            font.bold: true
-                                            color: root.textColor
-                                        }
-
-                                        // Space
-                                        RowLayout {
-                                            spacing: 15
-                                            Label {
-                                                text: qsTr("Space")
-                                                font.pixelSize: 14
-                                                font.bold: true
-                                                color: root.textSecondaryColor
-                                                Layout.minimumWidth: 80
-                                            }
-                                            Label {
-                                                text: qsTr("Play/Pause")
-                                                font.pixelSize: 14
-                                                color: root.textColor
-                                            }
-                                        }
-
-                                        // Ctrl+O
-                                        RowLayout {
-                                            spacing: 15
-                                            Label {
-                                                text: qsTr("Ctrl+O")
-                                                font.pixelSize: 14
-                                                font.bold: true
-                                                color: root.textSecondaryColor
-                                                Layout.minimumWidth: 80
-                                            }
-                                            Label {
-                                                text: qsTr("Open File")
-                                                font.pixelSize: 14
-                                                color: root.textColor
-                                            }
-                                        }
-
-                                        // Ctrl+L
-                                        RowLayout {
-                                            spacing: 15
-                                            Label {
-                                                text: qsTr("Ctrl+L")
-                                                font.pixelSize: 14
-                                                font.bold: true
-                                                color: root.textSecondaryColor
-                                                Layout.minimumWidth: 80
-                                            }
-                                            Label {
-                                                text: qsTr("Open Library")
-                                                font.pixelSize: 14
-                                                color: root.textColor
-                                            }
-                                        }
-
-                                        // Arrows
-                                        RowLayout {
-                                            spacing: 15
-                                            Label {
-                                                text: qsTr("↑/↓")
-                                                font.pixelSize: 14
-                                                font.bold: true
-                                                color: root.textSecondaryColor
-                                                Layout.minimumWidth: 80
-                                            }
-                                            Label {
-                                                text: qsTr("Volume Up/Down")
-                                                font.pixelSize: 14
-                                                color: root.textColor
-                                            }
-                                        }
-                                    }
-                                }
-
-                                // About Card
-                                Rectangle {
-                                    Layout.fillWidth: true
-                                    implicitHeight: aboutColumn.implicitHeight + 40
-                                    color: root.surfaceColor
-                                    radius: 12
-
-                                    ColumnLayout {
-                                        id: aboutColumn
-                                        anchors {
-                                            left: parent.left
-                                            right: parent.right
-                                            top: parent.top
-                                            margins: 20
-                                        }
-                                        spacing: 15
-
-                                        Label {
-                                            text: qsTr("ℹ️ About")
-                                            font.pixelSize: 18
-                                            font.bold: true
-                                            color: root.textColor
-                                        }
-
-                                        Label {
-                                            text: qsTr("Finix Player is a modern, feature-rich music player built with Qt 6 and C++.")
-                                            font.pixelSize: 13
-                                            color: root.textSecondaryColor
-                                            wrapMode: Text.WordWrap
-                                            Layout.fillWidth: true
-                                            lineHeight: 1.4
-                                        }
-
-                                        Label {
-                                            text: qsTr("The application demonstrates advanced C++ programming concepts and modern Qt development practices.")
-                                            font.pixelSize: 13
-                                            color: root.textSecondaryColor
-                                            wrapMode: Text.WordWrap
-                                            Layout.fillWidth: true
-                                            lineHeight: 1.4
-                                        }
-
-                                        Label {
-                                            text: qsTr("Developed with Qt Multimedia for high-quality audio playback and real-time effects processing.")
-                                            font.pixelSize: 13
-                                            color: root.textSecondaryColor
-                                            wrapMode: Text.WordWrap
-                                            Layout.fillWidth: true
-                                            lineHeight: 1.4
-                                        }
-
-                                        Item { height: 10 }
-
-                                        Label {
-                                            text: qsTr("©2025 Finix Player. All rights reserved.")
-                                            font.pixelSize: 11
-                                            color: root.textSecondaryColor
-                                            Layout.alignment: Qt.AlignHCenter
-                                        }
-                                    }
-                                }
-
-                                // Bottom spacing
-                                Item {
-                                    Layout.preferredHeight: 30
-                                }
+                    ControlButton {
+                        icon: "next"
+                        enabled: audioController.libraryPlaybackEnabled
+                        onClicked: {
+                            if (audioController.libraryPlaybackEnabled) {
+                                audioController.playNextInLibrary()
                             }
                         }
                     }
                 }
 
-            }
-
-            // ==================== PLAYBACK CONTROLS (BOTTOM BAR) ====================
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.preferredHeight: 120
-                color: root.surfaceColor
-
+                // Progress Bar Section - FIXED: Reduced label widths
                 ColumnLayout {
-                    anchors.fill: parent
-                    anchors.margins: 20
-                    spacing: 12
+                    Layout.fillWidth: true
+                    Layout.minimumWidth: 400
+                    spacing: design.spaceHalf
 
-                    // Progress Bar
                     RowLayout {
                         Layout.fillWidth: true
-                        spacing: 15
+                        spacing: design.spaceHalf  // Reduced spacing
 
                         Label {
-                            text: audioController.formattedPosition
-                            font.pixelSize: 12
-                            color: root.textSecondaryColor
-                            Layout.preferredWidth: 50
+                            text: formatDuration(audioController.position)
+                            font.pixelSize: design.fontSize
+                            color: design.textSecondary
+                            Layout.preferredWidth: 40  // Reduced from 50
+                            horizontalAlignment: Text.AlignRight
                         }
 
                         Slider {
@@ -1656,9 +2267,32 @@ if (playlistName.length > 0) {
                             Layout.fillWidth: true
                             from: 0
                             to: audioController.duration > 0 ? audioController.duration : 100
-                            value: audioController.position
+                            value: seekSliderValue
                             enabled: audioController.duration > 0
-                            onMoved: audioController.seek(value)
+
+                            property real seekSliderValue: audioController.position
+                            property bool seeking: false
+
+                            onPressedChanged: {
+                                if (!pressed && seeking) {
+                                    audioController.seek(value)
+                                    seeking = false
+                                }
+                            }
+
+                            onMoved: {
+                                seeking = true
+                                seekSliderValue = value
+                            }
+
+                            Connections {
+                                target: audioController
+                                function onPositionChanged() {
+                                    if (!progressSlider.seeking) {
+                                        progressSlider.seekSliderValue = audioController.position
+                                    }
+                                }
+                            }
 
                             background: Rectangle {
                                 x: progressSlider.leftPadding
@@ -1668,13 +2302,13 @@ if (playlistName.length > 0) {
                                 width: progressSlider.availableWidth
                                 height: implicitHeight
                                 radius: 3
-                                color: root.surfaceLightColor
+                                color: design.surfaceElevated
 
                                 Rectangle {
                                     width: progressSlider.visualPosition * parent.width
                                     height: parent.height
                                     radius: 3
-                                    color: root.primaryColor
+                                    color: design.accent
                                 }
                             }
 
@@ -1684,282 +2318,102 @@ if (playlistName.length > 0) {
                                 implicitWidth: 16
                                 implicitHeight: 16
                                 radius: 8
-                                color: progressSlider.pressed ? root.primaryColor : root.textColor
-                                border.color: root.primaryColor
+                                color: progressSlider.pressed ? design.accentBright : design.surface
+                                border.color: design.accentBright
                                 border.width: 2
                                 visible: progressSlider.hovered || progressSlider.pressed
                             }
                         }
 
                         Label {
-                            text: audioController.formattedDuration
-                            font.pixelSize: 12
-                            color: root.textSecondaryColor
-                            Layout.preferredWidth: 50
-                            horizontalAlignment: Text.AlignRight
+                            text: formatDuration(audioController.duration)
+                            font.pixelSize: design.fontSize
+                            color: design.textSecondary
+                            Layout.preferredWidth: 40  // Reduced from 50
+                            horizontalAlignment: Text.AlignLeft
                         }
                     }
 
-                    // Control Buttons
-                    RowLayout {
+                    // Library Mode Indicator
+                    Rectangle {
                         Layout.fillWidth: true
-                        spacing: 20
+                        height: 3
+                        radius: 2
+                        color: design.accentBright
+                        visible: audioController.libraryPlaybackEnabled
 
-                        // Track Info (Left Side)
-                        RowLayout {
-                            Layout.fillWidth: true
-                            Layout.maximumWidth: 300
-                            spacing: 15
+                        SequentialAnimation on opacity {
+                            running: audioController.libraryPlaybackEnabled
+                            loops: Animation.Infinite
+                            NumberAnimation { from: 0.3; to: 1.0; duration: 800 }
+                            NumberAnimation { from: 1.0; to: 0.3; duration: 800 }
+                        }
+                    }
+                }
+
+                // Volume Control - FIXED: Set fixed width
+                RowLayout {
+                    Layout.preferredWidth: 180
+                    Layout.alignment: Qt.AlignVCenter
+                    spacing: design.spaceHalf
+
+                    NeonIcon {
+                        iconName: "volume"
+                        size: 20
+                        glowColor: audioController.volume > 0.01 ? design.textPrimary : design.textMuted
+                    }
+
+                    Slider {
+                        id: volumeSlider
+                        from: 0
+                        to: 1
+                        value: audioController.volume
+                        Layout.preferredWidth: 120
+                        onMoved: audioController.setVolume(value)
+
+                        background: Rectangle {
+                            x: volumeSlider.leftPadding
+                            y: volumeSlider.topPadding + volumeSlider.availableHeight / 2 - height / 2
+                            implicitWidth: 100
+                            implicitHeight: 4
+                            width: volumeSlider.availableWidth
+                            height: implicitHeight
+                            radius: 2
+                            color: design.surfaceElevated
 
                             Rectangle {
-                                width: 56
-                                height: 56
-                                radius: 8
-                                color: root.surfaceLightColor
-
-                                Image {
-                                    anchors.fill: parent
-                                    anchors.margins: 2
-                                    source: audioController.thumbnailUrl || ""
-                                    fillMode: Image.PreserveAspectCrop
-                                    visible: source !== ""
-                                }
-
-                                Label {
-                                    anchors.centerIn: parent
-                                    text: "🎵"
-                                    font.pixelSize: 24
-                                    visible: audioController.thumbnailUrl === ""
-                                }
-                            }
-
-                            ColumnLayout {
-                                Layout.fillWidth: true
-                                spacing: 4
-
-                                Label {
-                                    text: audioController.trackTitle || qsTr("No track")
-                                    font.pixelSize: 14
-                                    font.bold: true
-                                    color: root.textColor
-                                    elide: Text.ElideRight
-                                    Layout.fillWidth: true
-                                }
-
-                                Label {
-                                    text: audioController.trackArtist || qsTr("Unknown")
-                                    font.pixelSize: 12
-                                    color: root.textSecondaryColor
-                                    elide: Text.ElideRight
-                                    Layout.fillWidth: true
-                                }
+                                width: volumeSlider.visualPosition * parent.width
+                                height: parent.height
+                                radius: 2
+                                color: design.accentBright
                             }
                         }
 
-                        Item { Layout.fillWidth: true }
-
-                        // Playback Controls (Center) - ALL BUTTONS FIXED
-                        RowLayout {
-                            Layout.alignment: Qt.AlignCenter
-                            spacing: 15
-
-                            // Previous Button - FIXED WITH SMART LOGIC
-                            Button {
-                                text: "⏮"
-                                implicitWidth: 44
-                                implicitHeight: 44
-                                enabled: audioController.duration > 0
-
-                                onClicked: {
-                                    if (audioController.libraryPlaybackEnabled) {
-                                        // Smart previous: go to previous track or restart
-                                        audioController.playPreviousInLibrary()
-                                    } else {
-                                        // Just restart current track
-                                        audioController.seek(0)
-                                    }
-                                }
-
-                                background: Rectangle {
-                                    radius: 22
-                                    color: parent.pressed ? root.surfaceLightColor : "transparent"
-                                    border.color: root.textSecondaryColor
-                                    border.width: 1
-                                }
-
-                                contentItem: Text {
-                                    text: parent.text
-                                    color: parent.enabled ?
-                                           (audioController.libraryPlaybackEnabled ? root.accentColor : root.textColor) :
-                                           root.textSecondaryColor
-                                    horizontalAlignment: Text.AlignHCenter
-                                    verticalAlignment: Text.AlignVCenter
-                                    font.pixelSize: 16
-                                }
-                            }
-
-                            // Play/Pause Button
-                            Button {
-                                text: audioController.isPlaying ? "⏸" : "▶"
-                                implicitWidth: 56
-                                implicitHeight: 56
-                                enabled: audioController.duration > 0
-
-                                onClicked: {
-                                    if (audioController.isPlaying) {
-                                        audioController.pause()
-                                    } else {
-                                        audioController.play()
-                                    }
-                                }
-
-                                background: Rectangle {
-                                    radius: 28
-                                    color: parent.enabled ?
-                                           (parent.pressed ? Qt.lighter(root.primaryColor, 1.2) : root.primaryColor) :
-                                           root.surfaceLightColor
-                                }
-
-                                contentItem: Text {
-                                    text: parent.text
-                                    color: parent.enabled ? "white" : root.textSecondaryColor
-                                    horizontalAlignment: Text.AlignHCenter
-                                    verticalAlignment: Text.AlignVCenter
-                                    font.pixelSize: 20
-                                }
-                            }
-
-                            // Next Button
-                            Button {
-                                text: "⏭"
-                                implicitWidth: 44
-                                implicitHeight: 44
-                                enabled: audioController.libraryPlaybackEnabled
-
-                                onClicked: {
-                                    if (audioController.libraryPlaybackEnabled) {
-                                        audioController.playNextInLibrary()
-                                    }
-                                }
-
-                                background: Rectangle {
-                                    radius: 22
-                                    color: parent.pressed ? root.surfaceLightColor : "transparent"
-                                    border.color: root.textSecondaryColor
-                                    border.width: 1
-                                }
-
-                                contentItem: Text {
-                                    text: parent.text
-                                    color: parent.enabled ? root.accentColor : root.textSecondaryColor
-                                    horizontalAlignment: Text.AlignHCenter
-                                    verticalAlignment: Text.AlignVCenter
-                                    font.pixelSize: 16
-                                }
-                            }
-                        }
-
-                        Item { Layout.fillWidth: true }
-
-                        // Volume Control (Right Side)
-                        RowLayout {
-                            Layout.alignment: Qt.AlignRight
-                            Layout.maximumWidth: 200
-                            spacing: 12
-
-                            Label {
-                                text: volumeSlider.value > 0.01 ? "🔊" : "🔇"
-                                font.pixelSize: 18
-                            }
-
-                            Slider {
-                                id: volumeSlider
-                                from: 0
-                                to: 1
-                                value: audioController.volume
-                                Layout.fillWidth: true
-                                onMoved: audioController.setVolume(value)
-
-                                background: Rectangle {
-                                    x: volumeSlider.leftPadding
-                                    y: volumeSlider.topPadding + volumeSlider.availableHeight / 2 - height / 2
-                                    implicitWidth: 100
-                                    implicitHeight: 6
-                                    width: volumeSlider.availableWidth
-                                    height: implicitHeight
-                                    radius: 3
-                                    color: root.surfaceLightColor
-
-                                    Rectangle {
-                                        width: volumeSlider.visualPosition * parent.width
-                                        height: parent.height
-                                        radius: 3
-                                        color: root.primaryColor
-                                    }
-                                }
-
-                                handle: Rectangle {
-                                    x: volumeSlider.leftPadding + volumeSlider.visualPosition * (volumeSlider.availableWidth - width)
-                                    y: volumeSlider.topPadding + volumeSlider.availableHeight / 2 - height / 2
-                                    implicitWidth: 16
-                                    implicitHeight: 16
-                                    radius: 8
-                                    color: volumeSlider.pressed ? root.primaryColor : root.textColor
-                                    border.color: root.primaryColor
-                                    border.width: 2
-                                    visible: volumeSlider.hovered || volumeSlider.pressed
-                                }
-                            }
-
-                            Label {
-                                text: Math.round(volumeSlider.value * 100) + "%"
-                                font.pixelSize: 12
-                                color: root.textSecondaryColor
-                                Layout.preferredWidth: 40
-                            }
+                        handle: Rectangle {
+                            x: volumeSlider.leftPadding + volumeSlider.visualPosition * (volumeSlider.availableWidth - width)
+                            y: volumeSlider.topPadding + volumeSlider.availableHeight / 2 - height / 2
+                            implicitWidth: 14
+                            implicitHeight: 14
+                            radius: 7
+                            color: volumeSlider.pressed ? design.accentBright : design.surface
+                            border.color: design.accentBright
+                            border.width: 2
+                            visible: volumeSlider.hovered || volumeSlider.pressed
                         }
                     }
-                }
 
-                // Library Playback Mode Indicator
-                Rectangle {
-                    anchors.top: parent.top
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    height: 3
-                    color: root.accentColor
-                    visible: audioController.libraryPlaybackEnabled
-
-                    SequentialAnimation on opacity {
-                        running: audioController.libraryPlaybackEnabled
-                        loops: Animation.Infinite
-                        NumberAnimation { from: 0.3; to: 1.0; duration: 800 }
-                        NumberAnimation { from: 1.0; to: 0.3; duration: 800 }
+                    Label {
+                        text: Math.round(volumeSlider.value * 100) + "%"
+                        font.pixelSize: design.fontSize
+                        color: design.textSecondary
+                        Layout.preferredWidth: 40
                     }
-                }
-            }
-
-            // Optional: Add a visual indicator showing library playback mode is active
-            Rectangle {
-                anchors.top: parent.top
-                anchors.left: parent.left
-                anchors.right: parent.right
-                height: 3
-                color: root.accentColor
-                visible: audioController.libraryPlaybackEnabled
-
-                SequentialAnimation on opacity {
-                    running: audioController.libraryPlaybackEnabled
-                    loops: Animation.Infinite
-                    NumberAnimation { from: 0.3; to: 1.0; duration: 800 }
-                    NumberAnimation { from: 1.0; to: 0.3; duration: 800 }
                 }
             }
         }
     }
 
     // ==================== DIALOGS ====================
-
     FileDialog {
         id: fileDialog
         title: qsTr("Select Audio File")
@@ -1990,42 +2444,42 @@ if (playlistName.length > 0) {
     Popup {
         id: youtubeDialog
         anchors.centerIn: Overlay.overlay
-        width: 500
-        height: 200
+        width: 550
+        height: 220
         modal: true
         focus: true
         closePolicy: Popup.CloseOnEscape
 
         background: Rectangle {
-            color: root.surfaceColor
-            radius: 16
-            border.color: root.primaryColor
+            radius: design.radiusLarge
+            color: design.surface
             border.width: 2
+            border.color: design.accentBright
         }
 
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: 25
-            spacing: 20
+            anchors.margins: design.spaceDouble
+            spacing: design.space
 
             Label {
                 text: qsTr("🎬 Play from YouTube")
-                font.pixelSize: 20
+                font.pixelSize: design.fontSizeTitle
                 font.bold: true
-                color: root.textColor
+                color: design.textPrimary
             }
 
             TextField {
                 id: youtubeInput
                 Layout.fillWidth: true
                 placeholderText: qsTr("Enter song name or YouTube URL...")
-                font.pixelSize: 14
-                color: root.textColor
+                font.pixelSize: design.fontSizeLarge
+                color: design.textPrimary
 
                 background: Rectangle {
-                    radius: 8
-                    color: root.backgroundColor
-                    border.color: youtubeInput.focus ? root.primaryColor : root.surfaceLightColor
+                    radius: design.radius
+                    color: design.surfaceElevated
+                    border.color: youtubeInput.focus ? design.accentBright : design.surfaceOverlay
                     border.width: 2
                 }
 
@@ -2039,7 +2493,7 @@ if (playlistName.length > 0) {
 
             RowLayout {
                 Layout.fillWidth: true
-                spacing: 15
+                spacing: design.space
 
                 DialogButton {
                     text: qsTr("Cancel")
@@ -2068,28 +2522,28 @@ if (playlistName.length > 0) {
     Popup {
         id: youtubeLoadingDialog
         anchors.centerIn: Overlay.overlay
-        width: 400
-        height: 180
+        width: 450
+        height: 200
         modal: true
         closePolicy: Popup.NoAutoClose
 
         background: Rectangle {
-            color: root.surfaceColor
-            radius: 16
-            border.color: root.primaryColor
+            radius: design.radiusLarge
+            color: design.surface
             border.width: 2
+            border.color: design.accentBright
         }
 
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: 25
-            spacing: 20
+            anchors.margins: design.spaceDouble
+            spacing: design.space
 
             Label {
                 text: qsTr("🔄 Loading YouTube Audio")
-                font.pixelSize: 18
+                font.pixelSize: design.fontSizeTitle
                 font.bold: true
-                color: root.textColor
+                color: design.textPrimary
                 Layout.alignment: Qt.AlignHCenter
             }
 
@@ -2100,13 +2554,12 @@ if (playlistName.length > 0) {
 
             Label {
                 text: qsTr("Please wait while we load your audio...")
-                font.pixelSize: 14
-                color: root.textSecondaryColor
+                font.pixelSize: design.fontSizeLarge
+                color: design.textSecondary
                 Layout.alignment: Qt.AlignHCenter
             }
         }
 
-        // Close when audio starts playing
         Connections {
             target: audioController
             function onIsPlayingChanged() {
@@ -2116,7 +2569,6 @@ if (playlistName.length > 0) {
             }
         }
 
-        // Auto-close after 30 seconds as fallback
         Timer {
             id: loadingTimeout
             interval: 30000
@@ -2131,35 +2583,35 @@ if (playlistName.length > 0) {
     Popup {
         id: savePlaylistDialog
         anchors.centerIn: Overlay.overlay
-        width: 480
-        height: 260
+        width: 520
+        height: 280
         modal: true
         focus: true
         closePolicy: Popup.CloseOnEscape
 
         background: Rectangle {
-            color: root.surfaceColor
-            radius: 16
-            border.color: root.accentColor
+            radius: design.radiusLarge
+            color: design.surface
             border.width: 2
+            border.color: design.accentBright
         }
 
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: 25
-            spacing: 20
+            anchors.margins: design.spaceDouble
+            spacing: design.space
 
             Label {
                 text: qsTr("💾 Save Playlist")
-                font.pixelSize: 20
+                font.pixelSize: design.fontSizeTitle
                 font.bold: true
-                color: root.textColor
+                color: design.textPrimary
             }
 
             Label {
                 text: qsTr("Enter a name for your playlist (will be saved as M3U)")
-                font.pixelSize: 14
-                color: root.textSecondaryColor
+                font.pixelSize: design.fontSize
+                color: design.textSecondary
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
             }
@@ -2168,34 +2620,20 @@ if (playlistName.length > 0) {
                 id: playlistNameInput
                 Layout.fillWidth: true
                 placeholderText: qsTr("My Favorite Songs")
-                font.pixelSize: 14
-                color: root.textColor
+                font.pixelSize: design.fontSizeLarge
+                color: design.textPrimary
 
                 background: Rectangle {
-                    radius: 8
-                    color: root.backgroundColor
-                    border.color: playlistNameInput.focus ? root.accentColor : root.surfaceLightColor
+                    radius: design.radius
+                    color: design.surfaceElevated
+                    border.color: playlistNameInput.focus ? design.accentBright : design.surfaceOverlay
                     border.width: 2
                 }
-
-                onAccepted: {
-                    if (text.trim().length > 0) {
-                       saveAsM3UPlaylist
-                    }
-                }
-            }
-
-            Label {
-                Layout.fillWidth: true
-                text: qsTr("📁 Playlist will be saved in the application directory")
-                font.pixelSize: 12
-                color: root.textSecondaryColor
-                wrapMode: Text.WordWrap
             }
 
             RowLayout {
                 Layout.fillWidth: true
-                spacing: 15
+                spacing: design.space
 
                 DialogButton {
                     text: qsTr("Cancel")
@@ -2209,92 +2647,86 @@ if (playlistName.length > 0) {
                     text: qsTr("Save")
                     primary: true
                     enabled: playlistNameInput.text.trim().length > 0
-                    onClicked: savePlaylist()
-                }
-            }
-        }
-        function savePlaylist() {
-            var playlistName = playlistNameInput.text.trim()
-            if (playlistName.length > 0) {
-                // Add .m3u extension if not present
-                if (!playlistName.toLowerCase().endsWith(".m3u")) {
-                    playlistName += ".m3u"
-                }
+                    onClicked: {
+                        var playlistName = playlistNameInput.text.trim()
+                        if (playlistName.length > 0) {
+                            if (!playlistName.toLowerCase().endsWith(".m3u")) {
+                                playlistName += ".m3u"
+                            }
 
-                // Get the application directory path
-                var appDir = Qt.application.arguments[0]
-                var lastSlash = Math.max(appDir.lastIndexOf('/'), appDir.lastIndexOf('\\'))
-                if (lastSlash > 0) {
-                    appDir = appDir.substring(0, lastSlash)
-                }
+                            var appDir = Qt.application.arguments[0]
+                            var lastSlash = Math.max(appDir.lastIndexOf('/'), appDir.lastIndexOf('\\'))
+                            if (lastSlash > 0) {
+                                appDir = appDir.substring(0, lastSlash)
+                            }
 
-                // Create full file path
-                var fullPath = appDir + "/" + playlistName
+                            var fullPath = appDir + "/" + playlistName
 
-                console.log("Saving playlist to:", fullPath)
+                            console.log("Saving playlist to:", fullPath)
 
-                // Actually save the playlist
-                var success = libraryModel.saveAsM3UPlaylist(fullPath)
+                            var success = libraryModel.saveAsM3UPlaylist(fullPath)
 
-                savePlaylistDialog.close()
-                playlistNameInput.text = ""
+                            savePlaylistDialog.close()
+                            playlistNameInput.text = ""
 
-                if (success) {
-                    saveConfirmationPopup.savedPath = fullPath
-                    saveConfirmationPopup.open()
-                } else {
-                    saveErrorPopup.open()
+                            if (success) {
+                                saveConfirmationPopup.savedPath = fullPath
+                                saveConfirmationPopup.open()
+                            } else {
+                                saveErrorPopup.open()
+                            }
+                        }
+                    }
                 }
             }
         }
     }
 
-    // Save Confirmation
-    // Save Confirmation
+    // Save Confirmation Popup
     Popup {
         id: saveConfirmationPopup
         anchors.centerIn: Overlay.overlay
-        width: 450
-        height: 200
+        width: 480
+        height: 220
         modal: true
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
         property string savedPath: ""
 
         background: Rectangle {
-            color: root.surfaceColor
-            radius: 16
-            border.color: "#4CAF50"
+            radius: design.radiusLarge
+            color: design.surface
             border.width: 2
+            border.color: design.success
         }
 
         ColumnLayout {
             anchors.centerIn: parent
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.margins: 20
-            spacing: 15
+            anchors.margins: design.space
+            spacing: design.space
 
             Label {
                 text: "✅"
-                font.pixelSize: 40
-                color: "#4CAF50"
+                font.pixelSize: 48
+                color: design.success
                 Layout.alignment: Qt.AlignHCenter
             }
 
             Label {
                 text: qsTr("Playlist saved successfully!")
-                font.pixelSize: 16
+                font.pixelSize: design.fontSizeTitle
                 font.bold: true
-                color: root.textColor
+                color: design.textPrimary
                 Layout.alignment: Qt.AlignHCenter
             }
 
             Label {
                 Layout.fillWidth: true
                 text: qsTr("Saved to: %1").arg(saveConfirmationPopup.savedPath)
-                font.pixelSize: 11
-                color: root.textSecondaryColor
+                font.pixelSize: design.fontSize
+                color: design.textSecondary
                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                 horizontalAlignment: Text.AlignHCenter
             }
@@ -2302,7 +2734,7 @@ if (playlistName.length > 0) {
             Button {
                 Layout.alignment: Qt.AlignHCenter
                 text: qsTr("Open Folder")
-                implicitHeight: 32
+                implicitHeight: 36
 
                 onClicked: {
                     Qt.openUrlExternally("file:///" + saveConfirmationPopup.savedPath.substring(0, saveConfirmationPopup.savedPath.lastIndexOf('/')))
@@ -2310,18 +2742,18 @@ if (playlistName.length > 0) {
                 }
 
                 background: Rectangle {
-                    radius: 6
-                    color: parent.pressed ? root.primaryColor : root.surfaceLightColor
-                    border.color: root.primaryColor
+                    radius: design.radius
+                    color: parent.down ? design.accentBright : design.surfaceElevated
+                    border.color: design.accentBright
                     border.width: 1
                 }
 
                 contentItem: Text {
                     text: parent.text
-                    color: root.textColor
+                    color: design.textPrimary
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
-                    font.pixelSize: 11
+                    font.pixelSize: design.fontSize
                 }
             }
         }
@@ -2333,46 +2765,45 @@ if (playlistName.length > 0) {
         }
     }
 
-    //Save error popup
     // Save Error Popup
     Popup {
         id: saveErrorPopup
         anchors.centerIn: Overlay.overlay
-        width: 380
-        height: 160
+        width: 420
+        height: 180
         modal: true
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
         background: Rectangle {
-            color: root.surfaceColor
-            radius: 16
-            border.color: "#F44336"
+            radius: design.radiusLarge
+            color: design.surface
             border.width: 2
+            border.color: design.error
         }
 
         ColumnLayout {
             anchors.centerIn: parent
-            spacing: 20
+            spacing: design.space
 
             Label {
                 text: "❌"
-                font.pixelSize: 40
-                color: "#F44336"
+                font.pixelSize: 48
+                color: design.error
                 Layout.alignment: Qt.AlignHCenter
             }
 
             Label {
                 text: qsTr("Failed to save playlist")
-                font.pixelSize: 16
+                font.pixelSize: design.fontSizeTitle
                 font.bold: true
-                color: root.textColor
+                color: design.textPrimary
                 Layout.alignment: Qt.AlignHCenter
             }
 
             Label {
                 text: qsTr("Please check file permissions and try again")
-                font.pixelSize: 12
-                color: root.textSecondaryColor
+                font.pixelSize: design.fontSize
+                color: design.textSecondary
                 Layout.alignment: Qt.AlignHCenter
             }
         }
@@ -2384,42 +2815,42 @@ if (playlistName.length > 0) {
         }
     }
 
-    // Scan Progress Dialog - FIXED: Will properly close when scan completes
+    // Scan Progress Dialog
     Popup {
         id: scanProgressDialog
         modal: true
         anchors.centerIn: Overlay.overlay
-        width: 420
-        height: 220
+        width: 450
+        height: 240
         closePolicy: Popup.CloseOnEscape
 
         property int currentProgress: 0
         property int totalProgress: 0
 
         background: Rectangle {
-            color: root.surfaceColor
-            radius: 16
-            border.color: root.primaryColor
+            radius: design.radiusLarge
+            color: design.surface
             border.width: 2
+            border.color: design.accentBright
         }
 
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: 25
-            spacing: 20
+            anchors.margins: design.spaceDouble
+            spacing: design.space
 
             Label {
                 text: qsTr("📂 Scanning Library")
-                font.pixelSize: 18
+                font.pixelSize: design.fontSizeTitle
                 font.bold: true
-                color: root.textColor
+                color: design.textPrimary
             }
 
             Label {
                 Layout.fillWidth: true
                 text: qsTr("Scanning for audio files in the selected directory...")
-                font.pixelSize: 14
-                color: root.textSecondaryColor
+                font.pixelSize: design.fontSize
+                color: design.textSecondary
                 wrapMode: Text.WordWrap
             }
 
@@ -2433,7 +2864,7 @@ if (playlistName.length > 0) {
                 background: Rectangle {
                     implicitWidth: 200
                     implicitHeight: 10
-                    color: root.surfaceLightColor
+                    color: design.surfaceElevated
                     radius: 5
                 }
 
@@ -2447,7 +2878,7 @@ if (playlistName.length > 0) {
                                0
                         height: parent.height
                         radius: 5
-                        color: root.primaryColor
+                        color: design.accentBright
                     }
                 }
             }
@@ -2457,8 +2888,8 @@ if (playlistName.length > 0) {
                 text: scanProgressDialog.totalProgress > 0 ?
                       qsTr("Found %1 of %2 tracks").arg(scanProgressDialog.currentProgress).arg(scanProgressDialog.totalProgress) :
                       qsTr("Initializing scan...")
-                font.pixelSize: 12
-                color: root.textSecondaryColor
+                font.pixelSize: design.fontSize
+                color: design.textSecondary
                 horizontalAlignment: Text.AlignHCenter
             }
 
@@ -2474,71 +2905,21 @@ if (playlistName.length > 0) {
     }
 
     // ==================== CUSTOM COMPONENTS ====================
-
-    // Sidebar Button - FIXED: Properly shows menu text
-    component SidebarButton: Item {
-        property string icon: ""
-        property string label: ""
-        property bool active: false
-        signal clicked()
-
-        Layout.fillWidth: true
-        Layout.leftMargin: 16
-        Layout.rightMargin: 16
-        implicitHeight: 50
-
-        Rectangle {
-            anchors.fill: parent
-            radius: 10
-            color: active ? root.primaryColor : (mouseArea.containsMouse ? root.surfaceLightColor : "transparent")
-        }
-
-        RowLayout {
-            anchors.fill: parent
-            anchors.leftMargin: 20
-            anchors.rightMargin: 20
-            spacing: 15
-
-            Label {
-                text: icon
-                font.pixelSize: 20
-                Layout.preferredWidth: 30
-            }
-
-            Label {
-                text: label
-                font.pixelSize: 14
-                font.bold: active
-                color: root.textColor
-                Layout.fillWidth: true
-            }
-        }
-
-        MouseArea {
-            id: mouseArea
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: parent.clicked()
-        }
-    }
-
-    // Action Card
-    component ActionCard: Rectangle {
+    component ActionTile: Rectangle {
         property string icon: ""
         property string title: ""
         property string description: ""
         signal clicked()
 
         Layout.fillWidth: true
-        implicitHeight: 120
-        color: root.surfaceColor
-        radius: 12
-        border.color: mouseArea.containsMouse ? root.primaryColor : "transparent"
-        border.width: 2
+        implicitHeight: 140
+        radius: design.radius
+        color: tileMouse.containsMouse ? design.surfaceElevated : design.surface
+        border.width: tileMouse.containsMouse ? 2 : 1
+        border.color: tileMouse.containsMouse ? design.accentBright : design.surfaceOverlay
 
         MouseArea {
-            id: mouseArea
+            id: tileMouse
             anchors.fill: parent
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
@@ -2547,279 +2928,194 @@ if (playlistName.length > 0) {
 
         ColumnLayout {
             anchors.centerIn: parent
-            spacing: 12
+            spacing: design.space
 
             Label {
                 Layout.alignment: Qt.AlignHCenter
                 text: icon
-                font.pixelSize: 32
+                font.pixelSize: 36
             }
 
             Label {
                 Layout.alignment: Qt.AlignHCenter
                 text: title
-                font.pixelSize: 16
+                font.pixelSize: design.fontSizeLarge
                 font.bold: true
-                color: root.textColor
+                color: design.textPrimary
             }
 
             Label {
                 Layout.alignment: Qt.AlignHCenter
                 text: description
-                font.pixelSize: 12
-                color: root.textSecondaryColor
+                font.pixelSize: design.fontSize
+                color: design.textSecondary
+                horizontalAlignment: Text.AlignHCenter
             }
         }
     }
 
-    // Library Stat
-    component LibraryStat: ColumnLayout {
-        property string icon: ""
-        property var value: 0
-        property string label: ""
-        property bool isTime: false
-
-        spacing: 6
-
-        Label {
-            Layout.alignment: Qt.AlignHCenter
-            text: icon
-            font.pixelSize: 24
-        }
-
-        Label {
-            Layout.alignment: Qt.AlignHCenter
-            text: isTime ? value : value.toString()
-            font.pixelSize: 20
-            font.bold: true
-            color: root.primaryColor
-        }
-
-        Label {
-            Layout.alignment: Qt.AlignHCenter
-            text: label
-            font.pixelSize: 12
-            color: root.textSecondaryColor
-        }
-    }
-
-    // Tool Button
-    component ToolButton: Button {
-        property bool primary: false
-
-        implicitHeight: 40
-        implicitWidth: 140
-
-        background: Rectangle {
-            radius: 8
-            color: primary ?
-                   (parent.pressed ? Qt.lighter(root.primaryColor, 1.2) : root.primaryColor) :
-                   (parent.pressed ? root.surfaceLightColor : "transparent")
-            border.color: primary ? root.primaryColor : root.textSecondaryColor
-            border.width: 1
-        }
-
-        contentItem: Text {
-            text: parent.text
-            color: primary ? "white" : root.textColor
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
-            font.pixelSize: 12
-            font.bold: primary
-        }
-    }
-
-    // Control Button
-    component ControlButton: Button {
-        property bool primary: false
-
-        implicitWidth: primary ? 56 : 44
-        implicitHeight: primary ? 56 : 44
-
-        background: Rectangle {
-            radius: primary ? 28 : 22
-            color: primary ?
-                   (parent.pressed ? Qt.lighter(root.primaryColor, 1.2) : root.primaryColor) :
-                   (parent.pressed ? root.surfaceLightColor : "transparent")
-            border.color: primary ? root.primaryColor : root.textSecondaryColor
-            border.width: primary ? 0 : 1
-        }
-
-        contentItem: Text {
-            text: parent.text
-            color: primary ? "white" : root.textColor
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
-            font.pixelSize: primary ? 20 : 16
-        }
-    }
-
-    // Dialog Button
-    component DialogButton: Button {
-        property bool primary: false
+    component StatCard: Rectangle {
+        property string title: ""
+        property string value: ""
+        property color accentColor: design.accentBright
+        property color backgroundColor: design.surface
 
         Layout.fillWidth: true
-        implicitHeight: 44
+        implicitHeight: 80
+        radius: design.radius
+        color: backgroundColor
+        border.width: 1
+        border.color: design.surfaceElevated
 
-        background: Rectangle {
-            radius: 8
-            color: primary ?
-                   (parent.pressed ? Qt.lighter(root.primaryColor, 1.2) : root.primaryColor) :
-                   (parent.pressed ? root.surfaceLightColor : root.backgroundColor)
-            border.color: primary ? root.primaryColor : root.surfaceLightColor
-            border.width: 2
-        }
+        ColumnLayout {
+            anchors.centerIn: parent
+            spacing: 0
 
-        contentItem: Text {
-            text: parent.text
-            color: primary ? "white" : root.textColor
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
-            font.pixelSize: 14
-            font.bold: primary
+            Label {
+                text: value
+                font.pixelSize: design.fontSizeDisplay - 2
+                font.bold: true
+                color: "black"
+                Layout.alignment: Qt.AlignHCenter
+            }
+
+            Label {
+                text: title
+                font.pixelSize: design.fontSize
+                color: "black"
+                Layout.alignment: Qt.AlignHCenter
+            }
         }
     }
 
-    // Effect Card
-    component EffectCard: Rectangle {
+    component ControlButton: Rectangle {
+        property string icon: ""
+        property bool primary: false
+        signal clicked()
+
+        implicitWidth: primary ? 60 : 48
+        implicitHeight: primary ? 60 : 48
+        radius: primary ? 30 : 24
+        gradient: primary ? design.primaryGradient : null
+        color: primary ? "transparent" : (buttonMouse.containsMouse ? design.surfaceElevated : design.surface)
+        border.width: primary ? 0 : 1
+        border.color: primary ? design.accentBright : design.surfaceOverlay
+
+        MouseArea {
+            id: buttonMouse
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onClicked: parent.clicked()
+        }
+
+        NeonIcon {
+            id: buttonIcon
+            anchors.centerIn: parent
+            iconName: parent.icon
+            size: primary ? 24 : 20
+            glowColor: primary ? design.textPrimary : design.accentBright
+
+            // Force repaint when icon changes
+            onIconNameChanged: {
+                requestPaint()
+            }
+        }
+    }
+
+    component DialogButton: Rectangle {
+        property string text: ""
+        property bool primary: false
+        signal clicked()
+
+        Layout.fillWidth: true
+        implicitHeight: 48
+        radius: design.radius
+        gradient: primary ? design.primaryGradient : null
+        color: primary ? "transparent" : (dialogMouse.containsMouse ? design.surfaceElevated : design.surface)
+        border.width: primary ? 2 : 1
+        border.color: primary ? design.accentBright : design.surfaceOverlay
+
+        MouseArea {
+            id: dialogMouse
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onClicked: parent.clicked()
+        }
+
+        Label {
+            anchors.centerIn: parent
+            text: parent.text
+            font.pixelSize: design.fontSizeLarge
+            font.bold: primary
+            color: primary ? design.textPrimary : design.textPrimary
+        }
+    }
+
+    component EffectPanel: Rectangle {
         property string title: ""
         property string description: ""
+        default property alias content: contentLayout.data
 
         Layout.fillWidth: true
-        implicitHeight: children[0].implicitHeight + 40
-        color: root.surfaceColor
-        radius: 12
-        border.color: root.surfaceLightColor
+        radius: design.radius
+        color: design.surface
         border.width: 1
+        border.color: design.surfaceElevated
 
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: 20
-            spacing: 12
+            anchors.margins: design.space
+            spacing: design.space
 
-            Label {
-                text: title
-                font.pixelSize: 18
-                font.bold: true
-                color: root.textColor
-            }
-
-            Label {
-                text: description
-                font.pixelSize: 14
-                color: root.textSecondaryColor
-                wrapMode: Text.WordWrap
+            // Header section
+            ColumnLayout {
                 Layout.fillWidth: true
+                spacing: design.spaceHalf
+
+                Label {
+                    text: title
+                    font.pixelSize: design.fontSizeTitle
+                    font.bold: true
+                    color: design.textPrimary
+                }
+
+                Label {
+                    text: description
+                    font.pixelSize: design.fontSize
+                    color: design.textSecondary
+                    wrapMode: Text.WordWrap
+                    Layout.maximumWidth: parent.width
+                }
+            }
+
+            // Content section
+            ColumnLayout {
+                id: contentLayout
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                spacing: design.space
             }
         }
     }
 
-    // About Card
-    component AboutCard: Rectangle {
-        property string title: ""
-
-        Layout.fillWidth: true
-        implicitHeight: children[0].implicitHeight + 40
-        color: root.surfaceColor
-        radius: 12
-
-        ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: 25
-            spacing: 15
-
-            Label {
-                text: title
-                font.pixelSize: 18
-                font.bold: true
-                color: root.textColor
-            }
-        }
-    }
-
-    // Setting Item
-    component SettingItem: RowLayout {
-        property string label: ""
-        property string value: ""
-
-        Layout.fillWidth: true
-
-        Label {
-            text: label
-            font.pixelSize: 14
-            color: root.textSecondaryColor
-            Layout.preferredWidth: 120
-        }
-
-        Label {
-            text: value
-            font.pixelSize: 14
-            font.bold: true
-            color: root.textColor
-            Layout.fillWidth: true
-        }
-    }
-
-    // Feature Item
     component FeatureItem: RowLayout {
         property string text: ""
 
         Layout.fillWidth: true
-        spacing: 10
+        spacing: design.spaceHalf
 
         Label {
             text: "•"
-            font.pixelSize: 14
-            color: root.primaryColor
+            font.pixelSize: design.fontSize
+            color: design.accentBright
         }
 
         Label {
             text: parent.text
-            font.pixelSize: 14
-            color: root.textSecondaryColor
+            font.pixelSize: design.fontSize
+            color: design.textSecondary
             wrapMode: Text.WordWrap
             Layout.fillWidth: true
-        }
-    }
-
-    // Shortcut Item
-    component ShortcutItem: RowLayout {
-        property string shortcut: ""
-        property string action: ""
-
-        Layout.fillWidth: true
-
-        Label {
-            text: shortcut
-            font.pixelSize: 14
-            color: root.textSecondaryColor
-            font.bold: true
-            Layout.preferredWidth: 80
-        }
-
-        Label {
-            text: action
-            font.pixelSize: 14
-            color: root.textColor
-            Layout.fillWidth: true
-        }
-    }
-
-    // ==================== HELPER FUNCTIONS ====================
-    function formatDuration(milliseconds) {
-        if (milliseconds <= 0 || isNaN(milliseconds)) return "0:00"
-
-        var totalSeconds = Math.floor(milliseconds / 1000)
-        var hours = Math.floor(totalSeconds / 3600)
-        var minutes = Math.floor((totalSeconds % 3600) / 60)
-        var seconds = totalSeconds % 60
-
-        if (hours > 0) {
-            return hours + ":" +
-                   (minutes < 10 ? "0" : "") + minutes + ":" +
-                   (seconds < 10 ? "0" : "") + seconds
-        } else {
-            return minutes + ":" + (seconds < 10 ? "0" : "") + seconds
         }
     }
 
@@ -2844,7 +3140,7 @@ if (playlistName.length > 0) {
     }
 
     Shortcut {
-        sequence: "Up"
+        sequences: ["Up", "Volume Up"]
         onActivated: {
             volumeSlider.value = Math.min(volumeSlider.value + 0.05, 1.0)
             audioController.setVolume(volumeSlider.value)
@@ -2852,15 +3148,15 @@ if (playlistName.length > 0) {
     }
 
     Shortcut {
-        sequence: "Down"
+        sequences: ["Down", "Volume Down"]
         onActivated: {
             volumeSlider.value = Math.max(volumeSlider.value - 0.05, 0.0)
             audioController.setVolume(volumeSlider.value)
         }
     }
 
-    // ==================== INITIALIZATION ====================
     Component.onCompleted: {
-        console.log("Finix Player initialized successfully")
+        console.log("Finix Player - Original Design - Initialized")
     }
+
 }

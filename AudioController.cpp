@@ -1,6 +1,5 @@
 #include "AudioController.h"
 #include "AudioException.h"
-#include "AudioUtils.h"
 #include <QUrl>
 #include <QFileInfo>
 #include <QProcess>
@@ -14,12 +13,13 @@
 
 // ==================== Constructor & Destructor ====================
 
+// Replace the AudioController constructor in AudioController.cpp with this:
+
 AudioController::AudioController(QObject *parent)
     : QObject(parent)
     , m_player(new QMediaPlayer(this))
     , m_audioOutput(new QAudioOutput(this))
-    , m_queue(100)
-    , m_albumArtCache(50)
+    , m_recommendationManager(new RecommendationManager(this))
 {
     // Setup audio output
     m_player->setAudioOutput(m_audioOutput);
@@ -39,6 +39,7 @@ AudioController::AudioController(QObject *parent)
         }
     });
 
+
     // Connect media player signals
     connect(m_player, &QMediaPlayer::positionChanged, this, &AudioController::onPositionChanged);
     connect(m_player, &QMediaPlayer::durationChanged, this, &AudioController::onDurationChanged);
@@ -46,6 +47,14 @@ AudioController::AudioController(QObject *parent)
     connect(m_player, &QMediaPlayer::metaDataChanged, this, &AudioController::onMetaDataChanged);
     connect(m_player, &QMediaPlayer::mediaStatusChanged, this, &AudioController::onMediaStatusChanged);
     connect(m_player, &QMediaPlayer::errorOccurred, this, &AudioController::onErrorOccurred);
+
+    // Connect recommendation manager signals
+    connect(m_recommendationManager, &RecommendationManager::playYouTubeSong,
+            this, &AudioController::playYouTubeAudio);
+
+    // Forward the recommendationsChanged signal from manager to AudioController
+    connect(m_recommendationManager, &RecommendationManager::recommendationsChanged,
+            this, &AudioController::recommendationsChanged);
 
     qDebug() << "AudioController initialized successfully";
 }
@@ -83,13 +92,11 @@ void AudioController::openFile(const QString &filePath)
 
         m_currentTrack = Track(filePath);
         setTrackInfo(m_currentTrack.title(), m_currentTrack.artist());
-
-        auto cachedArt = m_albumArtCache.get(m_currentTrack.album());
-        if (cachedArt.has_value()) {
-            qDebug() << "Using cached album art for:" << m_currentTrack.album();
-        }
-
         setThumbnail("");
+
+        // Cancel recommendation timer for local files
+        m_recommendationManager->cancelRecommendationTimer();
+
         play();
 
         m_currentTrack.incrementPlayCount();
@@ -128,9 +135,23 @@ void AudioController::playYouTubeAudio(const QString &query)
     m_mediaStatus = Loading;
     emit mediaStatusChanged();
 
-    QString ytDlpPath = QCoreApplication::applicationDirPath() + "/yt-dlp.exe";
-    if (!QFile::exists(ytDlpPath)) {
-        qWarning() << "yt-dlp.exe not found at:" << ytDlpPath;
+    // Try to find yt-dlp.exe in multiple locations
+    QString ytDlpPath;
+    QStringList searchPaths = {
+        QCoreApplication::applicationDirPath() + "/yt-dlp.exe",  // Build directory
+        QCoreApplication::applicationDirPath() + "/../yt-dlp.exe",  // Parent directory
+        QCoreApplication::applicationDirPath() + "/../../yt-dlp.exe"  // Grandparent (source dir)
+    };
+
+    for (const QString& path : searchPaths) {
+        if (QFile::exists(path)) {
+            ytDlpPath = path;
+            break;
+        }
+    }
+
+    if (ytDlpPath.isEmpty()) {
+        qWarning() << "yt-dlp.exe not found in any of the search paths:" << searchPaths;
         m_mediaStatus = Error;
         emit mediaStatusChanged();
         return;
@@ -140,13 +161,25 @@ void AudioController::playYouTubeAudio(const QString &query)
     QStringList args = {
         "-J",
         "--no-warnings",
-        "-f", "bestaudio[ext=m4a]/bestaudio",
+        "--buffer-size", "4M",               // 4MB buffer (matches ~4MB song size)
+        "--http-chunk-size", "512K",          // 512KB chunks for ultra-responsive buffering
+        "--socket-timeout", "30",             // Longer timeout for slow connections
+        "--retries", "3",                     // Retry failed requests
+        "-f", "bestaudio[ext=m4a]/bestaudio[ext=webm]/bestaudio/best",
+        "--extractor-args", "youtube:player_client=android_music",  // Use music client for better audio streams
+        "--no-check-certificates",            // Skip SSL verification for speed
         "ytsearch1:" + query
     };
+
+    qDebug() << "Starting yt-dlp with enhanced streaming options for query:" << query;
 
     connect(ytDlp, &QProcess::finished, this, [=](int exitCode) {
         if (exitCode != 0) {
             qWarning() << "yt-dlp failed with code:" << exitCode;
+            QByteArray errorOutput = ytDlp->readAllStandardError();
+            if (!errorOutput.isEmpty()) {
+                qWarning() << "yt-dlp stderr:" << QString::fromUtf8(errorOutput);
+            }
             m_mediaStatus = Error;
             emit mediaStatusChanged();
             ytDlp->deleteLater();
@@ -206,8 +239,26 @@ void AudioController::playYouTubeAudio(const QString &query)
 
         setTrackInfo(title, artist);
         setThumbnail(thumbnailUrl);
+
+        // Configure media player for better streaming
+        qDebug() << "Setting media source:" << audioUrl.left(50) + "...";
         m_player->setSource(QUrl(audioUrl));
-        play();
+
+        // For network streams, add a small delay to allow buffering
+        if (audioUrl.startsWith("http")) {
+            qDebug() << "Network stream detected - allowing time for initial buffering...";
+
+            // Give the stream time to start buffering before playing
+            QTimer::singleShot(500, this, [this]() {
+                qDebug() << "Starting playback after buffer delay...";
+                play();
+            });
+        } else {
+            play();
+        }
+
+        // Start recommendation timer for YouTube songs only
+        m_recommendationManager->startRecommendationTimer(title, artist);
 
         ytDlp->deleteLater();
     });
@@ -237,7 +288,17 @@ void AudioController::pause()
 
 void AudioController::seek(qint64 position)
 {
-    m_player->setPosition(position);
+    // Ensure position is within valid range
+    if (position < 0) position = 0;
+    if (m_player->duration() > 0 && position > m_player->duration()) {
+        position = m_player->duration();
+    }
+
+    // Only seek if the position actually changed significantly (>100ms difference)
+    // to avoid unnecessary seeks during rapid slider movements
+    if (qAbs(m_player->position() - position) > 100) {
+        m_player->setPosition(position);
+    }
 }
 
 void AudioController::setVolume(qreal volume)
@@ -357,6 +418,17 @@ void AudioController::setFadeInEnabled(bool enabled)
     qDebug() << "Fade in" << (enabled ? "enabled" : "disabled");
 }
 
+void AudioController::startFadeIn()
+{
+    if (m_fadeInEnabled && isPlaying()) {
+        m_fadeProgress = 0.0;
+        applyVolumeEffects();
+        m_fadeTimer->start();
+        qDebug() << "Fade in started";
+    }
+}
+
+
 void AudioController::resetEffects()
 {
     setGainBoost(1.0);
@@ -386,15 +458,6 @@ void AudioController::applyVolumeEffects()
     m_audioOutput->setVolume(effectiveVolume);
 }
 
-void AudioController::startFadeIn()
-{
-    if (m_fadeInEnabled && isPlaying()) {
-        m_fadeProgress = 0.0;
-        applyVolumeEffects();
-        m_fadeTimer->start();
-        qDebug() << "Fade in started";
-    }
-}
 
 // ==================== Library Playback ====================
 
@@ -418,6 +481,7 @@ void AudioController::playFromLibraryIndex(int index)
     m_currentLibraryIndex = index;
     QString trackPath = m_libraryQueue[index];
     openFile(trackPath);
+    play(); // Ensure playback always starts after openFile
 
     qDebug() << "Playing from library index:" << index << "Path:" << trackPath;
 }
@@ -457,38 +521,6 @@ void AudioController::playNextInLibrary()
 
 // ==================== Queue Management ====================
 
-void AudioController::addToQueue(const QString& filePath)
-{
-    try {
-        Track track(filePath);
-        m_queue.push(track);
-        qDebug() << "Added to queue:" << filePath << "- Size:" << m_queue.size();
-    }
-    catch (const std::exception& e) {
-        qWarning() << "Failed to add to queue:" << e.what();
-    }
-}
-
-// void AudioController::playNext()
-// {
-//     try {
-//         if (!m_queue.isEmpty()) {
-//             Track nextTrack = m_queue.pop();
-//             openFile(nextTrack.path());
-//             qDebug() << "Playing next from queue:" << nextTrack.title();
-//         } else {
-//             qDebug() << "Queue is empty";
-//         }
-//     }
-//     catch (const std::exception& e) {
-//         qWarning() << "Failed to play next:" << e.what();
-//     }
-// }
-
-int AudioController::queueSize() const
-{
-    return static_cast<int>(m_queue.size());
-}
 
 // ==================== Private Slots ====================
 
@@ -550,14 +582,28 @@ void AudioController::onMediaStatusChanged(QMediaPlayer::MediaStatus status)
 
     case QMediaPlayer::StalledMedia:
         m_mediaStatus = Stalled;
-        qWarning() << "Media Status: Stalled!";
+        qWarning() << "Media Status: Stalled! (Network streaming issue)";
         if (isPlaying() && !m_isRecovering) {
-            qWarning() << "Attempting recovery...";
+            qWarning() << "Network stream stalled - attempting recovery...";
             m_isRecovering = true;
-            qint64 pos = m_player->position();
             m_player->pause();
-            m_player->setPosition(pos + 1);
-            m_player->play();
+
+            // For network streams, wait longer and try different recovery
+            QTimer::singleShot(1500, this, [this]() {
+                qDebug() << "Trying to resume stalled stream...";
+                qint64 currentPos = m_player->position();
+
+                // Try seeking back a bit to restart buffering
+                if (currentPos > 2000) {
+                    m_player->setPosition(currentPos - 2000);
+                }
+
+                QTimer::singleShot(500, this, [this]() {
+                    m_player->play();
+                    m_isRecovering = false;
+                    qDebug() << "Stalled stream recovery completed";
+                });
+            });
         }
         break;
 
@@ -576,7 +622,33 @@ void AudioController::onMediaStatusChanged(QMediaPlayer::MediaStatus status)
 
 void AudioController::onErrorOccurred(QMediaPlayer::Error error, const QString &errorString)
 {
-    qWarning() << "QMediaPlayer Error:" << error << errorString;
+    qWarning() << "QMediaPlayer Error:" << error << "-" << errorString;
+
+    // Handle network-related errors with retry logic
+    if (error == QMediaPlayer::NetworkError ||
+        error == QMediaPlayer::AccessDeniedError ||
+        errorString.contains("network", Qt::CaseInsensitive)) {
+
+        qWarning() << "Network error detected - this may cause stream interruptions";
+
+        // For network streams, don't immediately set error status
+        // Let the stalled media recovery handle it
+        if (!m_isRecovering) {
+            qWarning() << "Attempting to recover from network error...";
+            m_isRecovering = true;
+
+            QTimer::singleShot(3000, this, [this]() {
+                qDebug() << "Retrying after network error...";
+                qint64 currentPos = m_player->position();
+                m_player->setPosition(currentPos);
+                m_player->play();
+                m_isRecovering = false;
+            });
+
+            return; // Don't set error status yet
+        }
+    }
+
     m_mediaStatus = Error;
     emit mediaStatusChanged();
 }
@@ -615,3 +687,17 @@ void AudioController::playPreviousInLibrary()
              << "/" << m_libraryQueue.size();
     openFile(previousTrack);
 }
+
+// ==================== Recommendation Methods ====================
+
+void AudioController::playRecommendedSong(int index)
+{
+    m_recommendationManager->playRecommendedSong(index);
+}
+
+void AudioController::addTestRecommendations()
+{
+    qDebug() << "=== ADDING TEST RECOMMENDATIONS ===";
+    m_recommendationManager->addTestRecommendations();
+}
+

@@ -4,9 +4,8 @@
 #include <QIcon>
 #include "AudioController.h"
 #include "Track.h"
-#include "Playlist.h"
-#include "MusicLibrary.h"
 #include "LibraryModel.h"
+#include "RecommendationManager.h"
 
 int main(int argc, char *argv[])
 {
@@ -15,20 +14,17 @@ int main(int argc, char *argv[])
 
     // Register C++ types with QML
     qmlRegisterType<AudioController>("com.finix.audioplayer", 1, 0, "AudioController");
-    qmlRegisterType<MusicLibrary>("com.finix.audioplayer", 1, 0, "MusicLibrary");
     qmlRegisterType<LibraryModel>("com.finix.audioplayer", 1, 0, "LibraryModel");
 
     // Register uncreatable types (for property types only)
     qmlRegisterUncreatableType<Track>("com.finix.audioplayer", 1, 0, "Track",
                                       "Track cannot be created from QML");
-    qmlRegisterUncreatableType<Playlist>("com.finix.audioplayer", 1, 0, "Playlist",
-                                         "Playlist cannot be created from QML");
+    qmlRegisterUncreatableType<RecommendationManager>("com.finix.audioplayer", 1, 0, "RecommendationManager",
+                                                     "RecommendationManager cannot be created from QML");
 
     QQmlApplicationEngine engine;
 
-     engine.rootContext()->setContextProperty("musicLibrary", &MusicLibrary::instance());
-
-    const QUrl url(QStringLiteral("qrc:/qt/qml/FinixPlayer/main.qml"));
+    const QUrl url(QStringLiteral("qrc:/main.qml"));
     engine.load(url);
 
     if (engine.rootObjects().isEmpty()) {

@@ -7,12 +7,9 @@
 #include <QMediaMetaData>
 #include <QTimer>
 #include <memory>
-#include <QImage>
 #include <vector>
 #include "Track.h"
-#include "CircularBuffer.h"
-#include "Cache.h"
-#include "PlaylistManager.h"
+#include "RecommendationManager.h"
 
 class AudioController : public QObject
 {
@@ -42,8 +39,6 @@ public:
     Q_PROPERTY(QString thumbnailUrl READ thumbnailUrl NOTIFY thumbnailUrlChanged)
     Q_PROPERTY(QString trackTitle READ trackTitle NOTIFY trackTitleChanged)
     Q_PROPERTY(QString trackArtist READ trackArtist NOTIFY trackArtistChanged)
-    Q_PROPERTY(QString formattedPosition READ formattedPosition NOTIFY positionChanged)
-    Q_PROPERTY(QString formattedDuration READ formattedDuration NOTIFY durationChanged)
     Q_PROPERTY(MediaStatus mediaStatus READ mediaStatus NOTIFY mediaStatusChanged)
 
     // Audio Effect Properties
@@ -54,6 +49,9 @@ public:
 
     // Library Playback Property
     Q_PROPERTY(bool libraryPlaybackEnabled READ isLibraryPlaybackEnabled NOTIFY libraryPlaybackEnabledChanged)
+
+    // Recommendation Properties
+    Q_PROPERTY(RecommendationManager* recommendationManager READ recommendationManager CONSTANT)
 
 public:
     explicit AudioController(QObject *parent = nullptr);
@@ -84,6 +82,9 @@ public:
     // Library playback getter
     bool isLibraryPlaybackEnabled() const { return m_libraryPlaybackEnabled; }
 
+    // Recommendation getter
+    RecommendationManager* recommendationManager() const { return m_recommendationManager; }
+
     // ==================== Invokable Methods ====================
 
     // Playback control
@@ -106,13 +107,12 @@ public:
     Q_INVOKABLE void playFromLibraryIndex(int index);
     Q_INVOKABLE void updateLibraryQueue(const QStringList& trackPaths);
 
-    // Queue management
-    Q_INVOKABLE void addToQueue(const QString& filePath);
     Q_INVOKABLE void playNextInLibrary();
-    Q_INVOKABLE int queueSize() const;
     Q_INVOKABLE void playPreviousInLibrary();
 
-
+    // Recommendation Methods
+    Q_INVOKABLE void playRecommendedSong(int index);
+    Q_INVOKABLE void addTestRecommendations();
 
 signals:
     // Playback signals
@@ -136,6 +136,9 @@ signals:
     // Library playback signal
     void libraryPlaybackEnabledChanged();
 
+    // Recommendation signals
+    void recommendationsChanged();
+
 private slots:
     // Media player event handlers
     void onPositionChanged(qint64 pos);
@@ -152,7 +155,6 @@ private:
     void setTrackInfo(const QString &title, const QString &artist);
     void applyVolumeEffects();
     void startFadeIn();
-    // void playNextInLibrary();
 
     // ==================== Member Variables ====================
 
@@ -183,15 +185,11 @@ private:
     QTimer* m_fadeTimer;
     qreal m_fadeProgress = 1.0;
 
-
-    // Playback queue
-    CircularBuffer<Track> m_queue;
-
-    // Album art cache
-    LRUCache<QString, QImage> m_albumArtCache;
-
     // Current track
     Track m_currentTrack;
+
+    // Recommendation system
+    RecommendationManager* m_recommendationManager;
 };
 
 #endif // AUDIOCONTROLLER_H

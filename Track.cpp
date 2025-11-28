@@ -1,13 +1,9 @@
-// Track.cpp - Add year support in constructors and methods
 #include "Track.h"
 #include <QFileInfo>
 #include <QMediaPlayer>
 #include <QAudioOutput>
 #include <QEventLoop>
 #include <QTimer>
-
-// ==================== STATIC MEMBER INITIALIZATION ====================
-int Track::s_totalTracksCreated = 0;
 
 // ==================== CONSTRUCTORS ====================
 Track::Track()
@@ -20,8 +16,6 @@ Track::Track()
     , m_duration(0)
     , m_playCount(0)
 {
-    s_totalTracksCreated++;
-    qDebug() << "Track created (empty). Total tracks:" << s_totalTracksCreated;
 }
 
 Track::Track(const QString& path)
@@ -30,9 +24,7 @@ Track::Track(const QString& path)
     , m_year(0)
     , m_playCount(0)
 {
-    s_totalTracksCreated++;
     loadMetadata();
-    qDebug() << "Track created from path:" << path << "Total tracks:" << s_totalTracksCreated;
 }
 
 Track::Track(const QString& path, const QString& title, const QString& artist)
@@ -45,130 +37,14 @@ Track::Track(const QString& path, const QString& title, const QString& artist)
     , m_duration(0)
     , m_playCount(0)
 {
-    s_totalTracksCreated++;
-    qDebug() << "Track created with metadata. Total tracks:" << s_totalTracksCreated;
 }
 
 // ==================== DESTRUCTOR ====================
 Track::~Track()
 {
-    s_totalTracksCreated--;
-    qDebug() << "Track destroyed:" << m_title << "Remaining tracks:" << s_totalTracksCreated;
 }
 
-// ==================== FUNCTION OVERLOADING IMPLEMENTATION ====================
-
-void Track::setDuration(qint64 durationMs)
-{
-    m_duration = durationMs;
-    qDebug() << "Duration set:" << durationMs << "ms";
-}
-
-void Track::setDuration(int minutes, int seconds)
-{
-    m_duration = (minutes * 60 + seconds) * 1000;
-    qDebug() << "Duration set:" << minutes << "min" << seconds << "sec";
-}
-
-void Track::setDuration(int hours, int minutes, int seconds)
-{
-    m_duration = ((hours * 3600) + (minutes * 60) + seconds) * 1000;
-    qDebug() << "Duration set:" << hours << "h" << minutes << "m" << seconds << "s";
-}
-
-void Track::play()
-{
-    qDebug() << "Playing track:" << m_title << "at default volume";
-    incrementPlayCount();
-}
-
-void Track::play(qreal volume)
-{
-    qDebug() << "Playing track:" << m_title << "at volume:" << volume;
-    incrementPlayCount();
-}
-
-void Track::play(qreal volume, qint64 startPosition)
-{
-    qDebug() << "Playing track:" << m_title
-             << "at volume:" << volume
-             << "from position:" << startPosition;
-    incrementPlayCount();
-}
-
-// ==================== OPERATOR OVERLOADING IMPLEMENTATION ====================
-
-bool Track::operator==(const Track& other) const
-{
-    return m_title == other.m_title && m_artist == other.m_artist;
-}
-
-bool Track::operator!=(const Track& other) const
-{
-    return !(*this == other);
-}
-
-bool Track::operator<(const Track& other) const
-{
-    return m_title < other.m_title;
-}
-
-bool Track::operator>(const Track& other) const
-{
-    return m_title > other.m_title;
-}
-
-Track& Track::operator=(const Track& other)
-{
-    if (this != &other) {
-        m_path = other.m_path;
-        m_title = other.m_title;
-        m_artist = other.m_artist;
-        m_album = other.m_album;
-        m_genre = other.m_genre;
-        m_year = other.m_year;  // Copy year
-        m_duration = other.m_duration;
-        m_playCount = other.m_playCount;
-        m_lastPlayed = other.m_lastPlayed;
-    }
-    return *this;
-}
-
-QDebug operator<<(QDebug debug, const Track& track)
-{
-    debug.nospace() << "Track("
-                    << track.m_title << ", "
-                    << track.m_artist << ", "
-                    << track.m_year << ", "  // Include year
-                    << track.formatDuration(track.m_duration) << ")";
-    return debug.space();
-}
-
-QString Track::operator+(const Track& other) const
-{
-    return m_title + " & " + other.m_title;
-}
-
-Track& Track::operator++()
-{
-    incrementPlayCount();
-    return *this;
-}
-
-Track Track::operator++(int)
-{
-    Track temp(*this);
-    incrementPlayCount();
-    return temp;
-}
-
-// ==================== STATIC MEMBER FUNCTIONS ====================
-
-int Track::getTotalTracksCreated()
-{
-    return s_totalTracksCreated;
-}
-
+// ==================== STATIC FUNCTIONS ====================
 bool Track::isValidAudioFile(const QString& path)
 {
     QStringList validExtensions = {"mp3", "flac", "ogg", "wav", "m4a", "aac", "wma"};
@@ -208,25 +84,7 @@ QString Track::formatDuration(qint64 milliseconds)
     }
 }
 
-// ==================== FRIEND FUNCTION IMPLEMENTATION ====================
-
-void printTrackDetails(const Track& track)
-{
-    qDebug() << "========== Track Details ==========";
-    qDebug() << "Path:" << track.m_path;
-    qDebug() << "Title:" << track.m_title;
-    qDebug() << "Artist:" << track.m_artist;
-    qDebug() << "Album:" << track.m_album;
-    qDebug() << "Genre:" << track.m_genre;
-    qDebug() << "Year:" << track.m_year;  // Include year
-    qDebug() << "Duration:" << Track::formatDuration(track.m_duration);
-    qDebug() << "Play Count:" << track.m_playCount;
-    qDebug() << "Last Played:" << track.m_lastPlayed.toString();
-    qDebug() << "===================================";
-}
-
-// ==================== EXISTING METHODS ====================
-
+// ==================== METHODS ====================
 void Track::incrementPlayCount()
 {
     m_playCount++;

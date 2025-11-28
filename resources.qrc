@@ -1,16 +1,7 @@
 <RCC>
     <qresource prefix="/">
         <file>assests/app_icon.ico</file>
-        <file>assests/background.jpg</file>
-        <file>assests/play.png</file>
-        <file>assests/pause.png</file>
-        <file>assests/volume.ico</file>
-        <file>assests/room-sound.jpg</file>
-        <file>assests/volume.png</file>
         <file>assests/default.jpg</file>
-        <file>assests/app_icon_full.png</file>
-        <file>assests/animation.json</file>
-        <file>test.qml</file>
-        <file>LibraryView.qml</file>
+        <file>main.qml</file>
     </qresource>
 </RCC>

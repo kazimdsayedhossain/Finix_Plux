@@ -1,10 +1,10 @@
 # ============================================================================
-# FinixPlayer – Modern Qt 6 Audio Player with Complete OOP Implementation
+# FinixPlayer – Modern Qt 6 Audio Player
 # ============================================================================
 cmake_minimum_required(VERSION 3.22)
 project(FinixPlayer
     VERSION 1.0.0
-    DESCRIPTION "Modern audio player with complete OOP implementation"
+    DESCRIPTION "Modern Qt 6 audio player"
     LANGUAGES CXX
 )
 
@@ -44,18 +44,11 @@ set(PROJECT_SOURCES
     AudioController.h
     Track.cpp
     Track.h
-    Playlist.cpp
-    Playlist.h
-    MusicLibrary.cpp
-    MusicLibrary.h
     LibraryModel.cpp
     LibraryModel.h
     AudioException.h
-    AudioUtils.h
-    CircularBuffer.h
-    Cache.h
-    PlaylistManager.h
-    PlaylistManager.cpp
+    RecommendationManager.cpp
+    RecommendationManager.h
 )
 
 # ----------------------------------------------------------------------------
@@ -102,6 +95,14 @@ target_link_libraries(${PROJECT_NAME}
         Qt6::Widgets
         Qt6::Core5Compat
         Qt6::Qml
+)
+
+# Copy yt-dlp.exe to build directory
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_SOURCE_DIR}/yt-dlp.exe
+        $<TARGET_FILE_DIR:${PROJECT_NAME}>/yt-dlp.exe
+    COMMENT "Copying yt-dlp.exe to build directory"
 )
 
 # ----------------------------------------------------------------------------
