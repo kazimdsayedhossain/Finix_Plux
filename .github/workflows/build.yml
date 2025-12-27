@@ -1,4 +1,4 @@
-name: Build Finix_Plus (Qt6 CMake Windows)
+name: Finix_Plus Clean Build (Qt6 + CMake)
 
 on:
   workflow_dispatch:
@@ -8,57 +8,38 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout source
         uses: actions/checkout@v4
 
-      # 1. Install Qt 6
-      # Removed 'qtdeclarative' as it is part of the base Qt 6 install.
-      # Added 'qt5compat' just in case you use any older Qt types, 
-      # and 'qtimageformats' for better asset support.
-      - name: Install Qt 6
+      - name: Install Qt 6.6.0
         uses: jurplel/install-qt-action@v3
         with:
-          version: '6.6.0'
-          arch: 'win64_mingw'
-          modules: 'qtmultimedia qtshadertools qt5compat'
-          cache: false # Keep false until we get a successful build to clear 400 error
+          version: 6.6.0
+          arch: win64_mingw
+          modules: qtdeclarative qtmultimedia
 
-      # 2. Setup MinGW
-      - name: Setup MinGW
-        uses: egor-tensin/setup-gcc@v1
-        with:
-          version: 11
-          platform: x64
-
-      # 3. Configure CMake
       - name: Configure CMake
-        shell: pwsh
+        shell: bash
         run: |
+          rm -rf build
           mkdir build
           cd build
-          cmake .. -G "MinGW Makefiles" `
-            -DCMAKE_BUILD_TYPE=Release `
-            -DCMAKE_PREFIX_PATH="$env:Qt6_DIR"
+          cmake .. -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
 
-      # 4. Build
-      - name: Build
-        shell: pwsh
+      - name: Build project
+        shell: bash
         run: |
           cd build
           mingw32-make -j2
 
-      # 5. Deploy
       - name: Deploy Qt runtime
-        shell: pwsh
+        shell: bash
         run: |
           cd build
-          $deployTool = "$env:Qt6_DIR/bin/windeployqt.exe"
-          # Added --no-compiler-runtime to avoid conflicts with the setup-gcc action
-          & $deployTool --qmldir ../ --no-translations *.exe
+          windeployqt --qmldir .. *.exe
 
-      # 6. Upload
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Finix_Plus-Windows-Build
-          path: build/
+          name: Finix_Plus_Windows_Build
+          path: build
