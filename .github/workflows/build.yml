@@ -1,4 +1,4 @@
-name: Build Finix_Plus (Qt6 + CMake)
+name: Build Finix_Plus (Qt6 CMake Windows)
 
 on:
   workflow_dispatch:
@@ -8,9 +8,11 @@ jobs:
     runs-on: windows-latest
 
     steps:
+      # 1. Get source code
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 2. Install Qt 6 (QML + Multimedia)
       - name: Install Qt 6
         uses: jurplel/install-qt-action@v3
         with:
@@ -18,24 +20,31 @@ jobs:
           arch: win64_mingw
           modules: qtdeclarative qtmultimedia
 
+      # 3. Configure project with CMake
       - name: Configure CMake
+        shell: bash
         run: |
           mkdir build
           cd build
           cmake .. -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
 
-      - name: Build project
+      # 4. Build project
+      - name: Build
+        shell: bash
         run: |
           cd build
           mingw32-make -j2
 
+      # 5. Bundle Qt DLLs + QML runtime
       - name: Deploy Qt runtime
+        shell: bash
         run: |
           cd build
           windeployqt --qmldir .. *.exe
 
-      - name: Upload build folder
+      # 6. Upload compiled folder
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Finix_Plus-Build
+          name: Finix_Plus-Windows-Build
           path: build
