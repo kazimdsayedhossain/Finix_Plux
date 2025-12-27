@@ -12,39 +12,54 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Install Qt 6 (QML + Multimedia)
+      # 2. Install Qt 6
+      # Note: 'qtshadertools' is required for almost all Qt 6 QML applications.
       - name: Install Qt 6
         uses: jurplel/install-qt-action@v3
         with:
-          version: 6.6.0
-          arch: win64_mingw
-          modules: qtdeclarative qtmultimedia
+          version: '6.6.0'
+          arch: 'win64_mingw'
+          modules: 'qtdeclarative qtmultimedia qtshadertools'
+          cache: true # Speeds up subsequent runs
 
-      # 3. Configure project with CMake
+      # 3. Set up MinGW
+      # The windows-latest runner has MinGW, but we need to ensure it's in the PATH
+      - name: Setup MinGW
+        uses: egor-tensin/setup-gcc@v1
+        with:
+          version: 11 # Standard for Qt 6.6 compatibility
+          platform: x64
+
+      # 4. Configure project with CMake
+      # We use -DCMAKE_PREFIX_PATH to ensure CMake finds the Qt version we just installed
       - name: Configure CMake
         shell: bash
         run: |
           mkdir build
           cd build
-          cmake .. -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
+          cmake .. -G "MinGW Makefiles" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$Qt6_DIR"
 
-      # 4. Build project
+      # 5. Build project
       - name: Build
         shell: bash
         run: |
           cd build
-          mingw32-make -j2
+          mingw32-make -j$(nproc)
 
-      # 5. Bundle Qt DLLs + QML runtime
+      # 6. Bundle Qt DLLs + QML runtime
+      # We use the full path to windeployqt to avoid "command not found" errors
       - name: Deploy Qt runtime
-        shell: bash
+        shell: pwsh
         run: |
           cd build
-          windeployqt --qmldir .. *.exe
+          $deployTool = "$env:Qt6_DIR/bin/windeployqt.exe"
+          & $deployTool --qmldir ../ --no-translations --compiler-runtime *.exe
 
-      # 6. Upload compiled folder
+      # 7. Upload compiled folder
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: Finix_Plus-Windows-Build
-          path: build
+          path: build/
