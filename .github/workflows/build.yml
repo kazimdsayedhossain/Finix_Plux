@@ -16,7 +16,7 @@ jobs:
         with:
           version: 6.6.0
           arch: win64_mingw
-          modules: qtquick qtmultimedia
+          modules: qtdeclarative qtmultimedia
 
       - name: Configure CMake
         run: |
@@ -29,7 +29,7 @@ jobs:
           cd build
           mingw32-make -j2
 
-      - name: Deploy Qt DLLs for Windows
+      - name: Deploy Qt runtime
         run: |
           cd build
           windeployqt --qmldir .. *.exe
