@@ -11,16 +11,12 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      # 1. Setup MSYS2 and MinGW
-      # This provides a working C++ compiler that won't fail the CMake test
-      - name: Setup MSYS2
-        uses: msys2/setup-msys2@v2
+      # 1. Install a working MinGW compiler
+      - name: Setup MinGW
+        uses: egor-tensin/setup-gcc@v1
         with:
-          msystem: MINGW64
-          update: true
-          install: >-
-            mingw-w64-x86_64-gcc
-            mingw-w64-x86_64-make
+          version: 13 # Newer version to ensure compatibility with Qt 6.8
+          platform: x64
 
       # 2. Install Qt 6.8.1
       - name: Install Qt
@@ -31,33 +27,36 @@ jobs:
           modules: 'qtmultimedia qtshadertools'
 
       # 3. Configure CMake
-      # We explicitly point CMake to the MinGW compiler we installed in step 1
+      # Using pwsh ensures 'cmake' is found (it is pre-installed on the runner)
       - name: Configure CMake
-        shell: msys2 {0}
+        shell: pwsh
         run: |
-          mkdir -p build
+          if (Test-Path build) { Remove-Item -Recurse -Force build }
+          mkdir build
           cd build
-          cmake .. -G "MinGW Makefiles" \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_PREFIX_PATH="/d/a/Finix_Plus/Qt/6.8.1/mingw_64" \
-            -DCMAKE_C_COMPILER=gcc \
+          # We explicitly tell CMake to use the MinGW we set up in Step 1
+          cmake .. -G "MinGW Makefiles" `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DCMAKE_PREFIX_PATH="$env:Qt6_DIR" `
+            -DCMAKE_C_COMPILER=gcc `
             -DCMAKE_CXX_COMPILER=g++
 
       # 4. Build
       - name: Build
-        shell: msys2 {0}
+        shell: pwsh
         run: |
           cd build
-          mingw32-make -j$(nproc)
+          # Use the mingw32-make provided by setup-gcc
+          mingw32-make -j$env:NUMBER_OF_PROCESSORS
 
       # 5. Deploy Qt runtime
-      # We switch back to pwsh for deployment to use Windows-style paths for windeployqt
       - name: Deploy
         shell: pwsh
         run: |
           cd build
           $deployTool = "$env:Qt6_DIR/bin/windeployqt.exe"
-          & $deployTool --qmldir ../ --no-translations --compiler-runtime *.exe
+          # --no-compiler-runtime avoids conflicts with the system GCC
+          & $deployTool --qmldir ../ --no-translations *.exe
 
       # 6. Upload artifact
       - name: Upload build artifact
