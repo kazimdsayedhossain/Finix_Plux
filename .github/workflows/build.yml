@@ -7,18 +7,19 @@ jobs:
   build:
     runs-on: windows-latest
 
-    steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
+    defaults:
+      run:
+        shell: pwsh
 
-      # 1. Install a working MinGW compiler
+    steps:
+      - uses: actions/checkout@v4
+
       - name: Setup MinGW
         uses: egor-tensin/setup-gcc@v1
         with:
-          version: 13 # Newer version to ensure compatibility with Qt 6.8
+          version: 13
           platform: x64
 
-      # 2. Install Qt 6.8.1
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
@@ -26,41 +27,18 @@ jobs:
           arch: 'win64_mingw'
           modules: 'qtmultimedia qtshadertools'
 
-      # 3. Configure CMake
-      # Using pwsh ensures 'cmake' is found (it is pre-installed on the runner)
       - name: Configure CMake
-        shell: pwsh
         run: |
           if (Test-Path build) { Remove-Item -Recurse -Force build }
-          mkdir build
+          New-Item -ItemType Directory -Name build
           cd build
-          # We explicitly tell CMake to use the MinGW we set up in Step 1
           cmake .. -G "MinGW Makefiles" `
             -DCMAKE_BUILD_TYPE=Release `
             -DCMAKE_PREFIX_PATH="$env:Qt6_DIR" `
             -DCMAKE_C_COMPILER=gcc `
             -DCMAKE_CXX_COMPILER=g++
 
-      # 4. Build
       - name: Build
-        shell: pwsh
         run: |
           cd build
-          # Use the mingw32-make provided by setup-gcc
           mingw32-make -j$env:NUMBER_OF_PROCESSORS
-
-      # 5. Deploy Qt runtime
-      - name: Deploy
-        shell: pwsh
-        run: |
-          cd build
-          $deployTool = "$env:Qt6_DIR/bin/windeployqt.exe"
-          # --no-compiler-runtime avoids conflicts with the system GCC
-          & $deployTool --qmldir ../ --no-translations *.exe
-
-      # 6. Upload artifact
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Finix_Plus_Windows_Build
-          path: build/
