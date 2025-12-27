@@ -11,45 +11,55 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      # 1. Install Qt 6.8.1 (LTS) - More likely to satisfy newer project requirements
+      # 1. Setup MSYS2 and MinGW
+      # This provides a working C++ compiler that won't fail the CMake test
+      - name: Setup MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-gcc
+            mingw-w64-x86_64-make
+
+      # 2. Install Qt 6.8.1
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
           version: '6.8.1'
           arch: 'win64_mingw'
-          # Required modules for QML and Multimedia
           modules: 'qtmultimedia qtshadertools'
 
-      # 2. Configure CMake
-      # Using pwsh (PowerShell) is much more reliable for paths on Windows runners
+      # 3. Configure CMake
+      # We explicitly point CMake to the MinGW compiler we installed in step 1
       - name: Configure CMake
-        shell: pwsh
+        shell: msys2 {0}
         run: |
-          if (Test-Path build) { Remove-Item -Recurse -Force build }
-          New-Item -ItemType Directory -Path build
-          Set-Location build
-          # -DCMAKE_PREFIX_PATH helps CMake find the exact Qt we just installed
-          cmake .. -G "MinGW Makefiles" `
-            -DCMAKE_BUILD_TYPE=Release `
-            -DCMAKE_PREFIX_PATH="$env:Qt6_DIR"
+          mkdir -p build
+          cd build
+          cmake .. -G "MinGW Makefiles" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="/d/a/Finix_Plus/Qt/6.8.1/mingw_64" \
+            -DCMAKE_C_COMPILER=gcc \
+            -DCMAKE_CXX_COMPILER=g++
 
-      # 3. Build
+      # 4. Build
       - name: Build
-        shell: pwsh
+        shell: msys2 {0}
         run: |
-          Set-Location build
-          mingw32-make -j$($env:NUMBER_OF_PROCESSORS)
+          cd build
+          mingw32-make -j$(nproc)
 
-      # 4. Deploy Qt runtime
+      # 5. Deploy Qt runtime
+      # We switch back to pwsh for deployment to use Windows-style paths for windeployqt
       - name: Deploy
         shell: pwsh
         run: |
-          Set-Location build
-          # Use the absolute path to windeployqt provided by the action
+          cd build
           $deployTool = "$env:Qt6_DIR/bin/windeployqt.exe"
           & $deployTool --qmldir ../ --no-translations --compiler-runtime *.exe
 
-      # 5. Upload build artifact
+      # 6. Upload artifact
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
